@@ -301,8 +301,18 @@ class mos6502 {
      * Addressing modes
      */
 
+    private read(addr: number): number {
+        return 0
+    }
+
     // Immediate
     private IMM(): number {
+        const operand = this.read(this.pc + 1)
+
+        this.pc = this.pc += 2
+        //  op(operand)
+
+
         return 0
     }
 
@@ -312,38 +322,95 @@ class mos6502 {
         return 0
     }
 
-    // Relative
+    // Relative addressing
+    // used on branching to establish a destination
+    // Second byte is an 
     private REL(): number {
+        const offset = this.read(this.pc + 1) & 0xFF
+
+        // op(offset)
         return 0
     }
 
-    // Zero Page
+    /**
+     * Zero Page address mode.
+     * Assume that the higher byte will be 0x00 (page 1)
+     * Read a byte from PC to get the 8 lower bits of the address.
+     */
     private ZP(): number {
+        const low = this.read(this.pc + 1) & 0xFF
+
+        this.pc = this.pc + 2
+
+        const addr = low & 0xFF
+        // op(addr)
         return 0
     }
 
-    // Zero Page indexed X
+    /**
+     * Indexed Zero Page (X) addressing.
+     * Read a byte from PC to get the 8 lower bits of the address.
+     * Read a byte from PC to get the 8 lower bits of the address.
+     */
     private ZPX(): number {
+        const offset = this.read(this.pc + this.x) & 0xFF
+        this.pc = this.pc + 1
+        // op(offset)
         return 0
     }
 
-    // Zero Page indexed Y
+    /**
+     * Indexed Zero Page (X) addressing.
+     * Read a byte from PC to get the 8 lower bits of the address.
+     * Read a byte from PC to get the 8 lower bits of the address.
+     */
     private ZPY(): number {
+        const offset = this.read(this.pc + this.y) & 0xFF
+        this.pc = this.pc + 1
+        // op(offset)
         return 0
     }
 
-    // Absolute
+    /**
+     * Absolute address mode.
+     * Read one byte from PC to get the 8 lower bits of the address.
+     * Read a second byte from PC to get the 8 higher bits of the address.
+     */
     private ABS(): number {
+        const low = this.read(this.pc + 1)
+        const high = this.read(this.pc + 2)
+        this.pc = this.pc + 3
+
+        const addr = ((high << 8) | low) & 0xFFFF 
+
+        // op(addr)
         return 0
     }
 
     // Absolute indexed X
     private ABX(): number {
+        const low = this.read(this.pc + this.x)
+        const high = this.read(this.pc + this.x)
+        this.pc = this.pc + 3
+
+        const addr = ((high << 8) | low) & 0xFFFF 
+
+        return ((addr & 0xFF00) != (high << 8)) ? 1 : 0
+        // op(addr)
         return 0
     }
 
     // Absolute indexed Y
     private ABY(): number {
+        const low = this.read(this.pc + this.y)
+        const high = this.read(this.pc + this.y)
+        this.pc = this.pc + 3
+
+        const addr = ((high << 8) | low) & 0xFFFF 
+
+        return ((addr & 0xFF00) != (high << 8)) ? 1 : 0
+            // return op() + 1
+        // return op(addr)
         return 0
     }
 
