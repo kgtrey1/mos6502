@@ -12,25 +12,25 @@ class mos6502 {
     private currentInstruction: Instruction = { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }
     
 
-    // 28 out of 57 instructions
+    // 36 out of 57 instructions
     private instructionMatrix: Array<Instruction> = [
             // Row 0
-            { name: 'BRK', mode: this.IMP, op: this.ABS, cycles: 7 },
-            { name: 'ORA', mode: this.IX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'ORA', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'ASL', mode: this.ZP, op: this.ASL, cycles: 5 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'PHP', mode: this.IMP, op: this.ABS, cycles: 3 },
-            { name: 'ORA', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'ASL', mode: this.IMP, op: this.ASL, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'ORA', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'ASL', mode: this.ABS, op: this.ASL, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'BRK', mode: this.IMP, op: this.BRK, cycles: 7 }, // check
+            { name: 'ORA', mode: this.IX, op: this.ORA, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'ORA', mode: this.ZP, op: this.ORA, cycles: 3 }, //check
+            { name: 'ASL', mode: this.ZP, op: this.ASL, cycles: 5 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'PHP', mode: this.IMP, op: this.PHP, cycles: 3 }, // check
+            { name: 'ORA', mode: this.IMM, op: this.ORA, cycles: 2 }, // check
+            { name: 'ASL', mode: this.IMP, op: this.ASL, cycles: 2 }, // check - this is implied even if acc, no need to fetch data
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'ORA', mode: this.ABS, op: this.ORA, cycles: 4 }, // check
+            { name: 'ASL', mode: this.ABS, op: this.ASL, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
               // Row 1
             { name: 'BPL', mode: this.REL, op: this.BPL, cycles: 2 },
             { name: 'ORA', mode: this.IY, op: this.ABS, cycles: 5 }, // *
@@ -447,6 +447,8 @@ class mos6502 {
 
     /**
      * https://www.nesdev.org/obelisk-6502-guide/reference.html
+     * todo: check potential overflow (js is working in 64bits and no way to use 16bits or 8 bits)
+     * this mean potential issue on any sub or add made on a number
      */
 
     private AND(address: number) {
@@ -801,7 +803,20 @@ class mos6502 {
         this.setFlag(Flags.N, (this.a & 0x80) === 1)
     }
 
-    
+    private ORA(address) {
+        const m = this.read(address)
+
+        this.a = this.a | m
+
+        this.setFlag(Flags.Z, this.a === 0x00)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return
+    }
+
+    private PHP() {
+        this.write(this.stkp, this.status)
+        this.stkp = this.stkp - 1
+    }
 }
 
 export default mos6502
