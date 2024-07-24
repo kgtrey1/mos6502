@@ -740,6 +740,68 @@ class mos6502 {
         this.setFlag(Flags.N, (this.a & 0x80) === 1)
         return 0
     }
+
+    private CMP(address: number) {
+        const m = this.read(address)
+
+        this.setFlag(Flags.Z, this.a === m)
+        this.setFlag(Flags.C, this.a >= m)
+        this.setFlag(Flags.N, ((this.a - m) & 0x80) === 1)
+        return
+    }
+
+    private CPX(address: number) {
+        const m = this.read(address)
+
+        this.setFlag(Flags.Z, this.x === m)
+        this.setFlag(Flags.C, this.x >= m)
+        this.setFlag(Flags.N, (((this.x - m) & 0xFF) & 0x80) === 1)
+        return
+    }
+
+    private CPY(address: number) {
+        const m = this.read(address)
+
+        this.setFlag(Flags.Z, this.y === m)
+        this.setFlag(Flags.C, this.y >= m)
+        this.setFlag(Flags.N, (((this.y - m) & 0xFF) & 0x80) === 1)
+        return
+    }
+
+    private DEC(address: number) {
+        const m = this.read(address)
+        const result = (m - 1) & 0x00FF
+
+        this.write(address, result)
+        this.setFlag(Flags.Z, result === 0)
+        this.setFlag(Flags.N, (result & 0x80) === 1)
+        
+    }
+
+    private DEX() {
+        this.x = (this.x - 1) & 0x00FF
+
+        this.setFlag(Flags.Z, this.x === 0x00)
+        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+    }
+
+    private DEY() {
+        this.y = (this.y - 1) & 0x00FF
+
+        this.setFlag(Flags.Z, this.y === 0x00)
+        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+    }
+
+    private EOR(address: number) {
+        const m = this.read(address)
+
+        this.a = this.a ^ m
+
+        this.setFlag(Flags.Z, this.a === 0x00)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+    }
+
+    
 }
 
 export default mos6502
