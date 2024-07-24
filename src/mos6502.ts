@@ -11,8 +11,11 @@ class mos6502 {
 
     private currentInstruction: Instruction = { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }
     
-
+    // looking for a way to remove the matrix from this class, it takes too much space and it makes me want
+    // to add this project to my pile of shame
     // 36 out of 57 instructions
+
+    // Illegal instruction will have their special function, I don't think ill implement them so it might be NOPd
     private instructionMatrix: Array<Instruction> = [
             // Row 0
             { name: 'BRK', mode: this.IMP, op: this.BRK, cycles: 7 }, // check
@@ -66,21 +69,21 @@ class mos6502 {
             { name: 'ROL', mode: this.ABS, op: this.ROL, cycles: 6 }, // check
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 3
-            { name: 'BMI', mode: this.REL, op: this.BMI, cycles: 2 },
-            { name: 'AND', mode: this.IY, op: this.ABS, cycles: 5 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'AND', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'ROL', mode: this.ZPX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'SEC', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'AND', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'AND', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
-            { name: 'ROL', mode: this.ABX, op: this.ABS, cycles: 7 },
+            { name: 'BMI', mode: this.REL, op: this.BMI, cycles: 2 }, // check
+            { name: 'AND', mode: this.IY, op: this.AND, cycles: 5 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'AND', mode: this.ZPX, op: this.AND, cycles: 4 }, // check
+            { name: 'ROL', mode: this.ZPX, op: this.ROL, cycles: 6 },  // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'SEC', mode: this.IMP, op: this.SEC, cycles: 2 }, // check
+            { name: 'AND', mode: this.ABY, op: this.AND, cycles: 4 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'AND', mode: this.ABX, op: this.AND, cycles: 4 }, // check
+            { name: 'ROL', mode: this.ABX, op: this.ROL, cycles: 7 }, // check
             // Row 4
             { name: 'RTI', mode: this.IMP, op: this.ABS, cycles: 6 },
             { name: 'EOR', mode: this.IX, op: this.ABS, cycles: 6 },
