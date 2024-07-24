@@ -1,3 +1,4 @@
+import Flags from "./types/flags"
 import Instruction from "./types/instruction"
 
 class mos6502 {
@@ -7,33 +8,35 @@ class mos6502 {
     private pc: number = 0x00 // 2 bytes, contains the next address of the program  
     private stkp: number = 0x00
     private status: number = 0x00
-    private instructionMatrix: Array<Array<Instruction>> = [
-        [ // Row 0
+
+    private currentInstruction: Instruction = { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }
+    
+    private instructionMatrix: Array<Instruction> = [
+            // Row 0
             { name: 'BRK', mode: this.IMP, op: this.ABS, cycles: 7 },
             { name: 'ORA', mode: this.IX, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'ORA', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'ASL', mode: this.ZP, op: this.ABS, cycles: 5 },
+            { name: 'ASL', mode: this.ZP, op: this.ASL, cycles: 5 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'PHP', mode: this.IMP, op: this.ABS, cycles: 3 },
             { name: 'ORA', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'ASL', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'ASL', mode: this.IMP, op: this.ASL, cycles: 2 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'ORA', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'ASL', mode: this.ABS, op: this.ABS, cycles: 6 },
+            { name: 'ASL', mode: this.ABS, op: this.ASL, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row 1
+              // Row 1
             { name: 'BPL', mode: this.REL, op: this.ABS, cycles: 2 }, // **
             { name: 'ORA', mode: this.IY, op: this.ABS, cycles: 5 }, // *
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'ORA', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'ASL', mode: this.ZPX, op: this.ABS, cycles: 6 },
+            { name: 'ASL', mode: this.ZPX, op: this.ASL, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'CLC', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'ORA', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
@@ -41,10 +44,9 @@ class mos6502 {
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'ORA', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
-            { name: 'ASL', mode: this.ABS, op: this.ABS, cycles: 6 },
+            { name: 'ASL', mode: this.ABX, op: this.ASL, cycles: 7 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row 2
+            // Row 2
             { name: 'JSR', mode: this.ABS, op: this.ABS, cycles: 6 },
             { name: 'AND', mode: this.IX, op: this.ABS, cycles: 5 }, // *
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -61,8 +63,7 @@ class mos6502 {
             { name: 'ABS', mode: this.ABS, op: this.ABS, cycles: 4 },
             { name: 'ROL', mode: this.ABS, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row 3
+            // Row 3
             { name: 'BMI', mode: this.REL, op: this.ABS, cycles: 2 }, // **
             { name: 'AND', mode: this.IY, op: this.ABS, cycles: 5 }, // *
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -78,8 +79,7 @@ class mos6502 {
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'AND', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
             { name: 'ROL', mode: this.ABX, op: this.ABS, cycles: 7 },
-        ],
-        [ // Row 4
+            // Row 4
             { name: 'RTI', mode: this.IMP, op: this.ABS, cycles: 6 },
             { name: 'EOR', mode: this.IX, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -96,8 +96,7 @@ class mos6502 {
             { name: 'EOR', mode: this.ABS, op: this.ABS, cycles: 4 },
             { name: 'LSR', mode: this.ABS, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row 5
+            // Row 5
             { name: 'BVC', mode: this.REL, op: this.ABS, cycles: 2 }, // **
             { name: 'EOR', mode: this.IY, op: this.ABS, cycles: 5 }, // *
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -114,8 +113,7 @@ class mos6502 {
             { name: 'EOR', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
             { name: 'LSR', mode: this.ABX, op: this.ABS, cycles: 7 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row 6
+            // Row 6
             { name: 'RTS', mode: this.IMP, op: this.ABS, cycles: 6 },
             { name: 'ADC', mode: this.IX, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -132,8 +130,7 @@ class mos6502 {
             { name: 'ADC', mode: this.ABS, op: this.ABS, cycles: 4 },
             { name: 'ROR', mode: this.ABS, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row 7
+            // Row 7
             { name: 'BVS', mode: this.REL, op: this.ABS, cycles: 2 }, // **
             { name: 'ADC', mode: this.IY, op: this.ABS, cycles: 5 }, // *
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -150,8 +147,7 @@ class mos6502 {
             { name: 'ADC', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
             { name: 'ROR', mode: this.ABX, op: this.ABS, cycles: 7 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row 8
+            // Row 8
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'STA', mode: this.IX, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -168,8 +164,7 @@ class mos6502 {
             { name: 'STA', mode: this.ABS, op: this.ABS, cycles: 4 },
             { name: 'STX', mode: this.ABS, op: this.ABS, cycles: 4 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row 9
+            // Row 9
             { name: 'BCC', mode: this.REL, op: this.ABS, cycles: 2 }, // **
             { name: 'STA', mode: this.IY, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -186,8 +181,7 @@ class mos6502 {
             { name: 'STA', mode: this.ABX, op: this.ABS, cycles: 5 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row A
+            // Row A
             { name: 'LDY', mode: this.IMM, op: this.ABS, cycles: 2 },
             { name: 'LDA', mode: this.IX, op: this.ABS, cycles: 6 },
             { name: 'LDX', mode: this.IMM, op: this.ABS, cycles: 2 },
@@ -204,8 +198,7 @@ class mos6502 {
             { name: 'LDA', mode: this.ABS, op: this.ABS, cycles: 4 },
             { name: 'LDX', mode: this.ABS, op: this.ABS, cycles: 4 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row B
+            // Row B
             { name: 'BCS', mode: this.REL, op: this.ABS, cycles: 2 }, // **
             { name: 'LDA', mode: this.IY, op: this.ABS, cycles: 5 }, // *
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -222,8 +215,7 @@ class mos6502 {
             { name: 'LDA', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
             { name: 'LDX', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row C
+            // Row C
             { name: 'CPY', mode: this.IMM, op: this.ABS, cycles: 2 },
             { name: 'CMP', mode: this.IX, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -240,8 +232,7 @@ class mos6502 {
             { name: 'CMP', mode: this.ABS, op: this.ABS, cycles: 4 },
             { name: 'DEC', mode: this.ABS, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row D
+            // Row D
             { name: 'BNE', mode: this.REL, op: this.ABS, cycles: 2 }, // **
             { name: 'CMP', mode: this.IY, op: this.ABS, cycles: 5 }, // *
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -258,8 +249,7 @@ class mos6502 {
             { name: 'CMP', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
             { name: 'DEC', mode: this.ABX, op: this.ABS, cycles: 7 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row E
+            // Row E
             { name: 'CPX', mode: this.IMM, op: this.ABS, cycles: 2 },
             { name: 'SBC', mode: this.IX, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -276,8 +266,7 @@ class mos6502 {
             { name: 'SBC', mode: this.ABS, op: this.ABS, cycles: 4 },
             { name: 'INC', mode: this.ABS, op: this.ABS, cycles: 6 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ],
-        [ // Row F
+            // Row F
             { name: 'BEO', mode: this.REL, op: this.ABS, cycles: 2}, // **
             { name: 'SBC', mode: this.IY, op: this.ABS, cycles: 5 },// *
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
@@ -295,11 +284,28 @@ class mos6502 {
             { name: 'INC', mode: this.ABX, op: this.ABS, cycles: 7 },
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
         ]
-    ]
+
+    public simulate() {
+        const opcode = this.read(this.pc) & 0xFF
+        this.currentInstruction = this.instructionMatrix[opcode]
+
+
+    }
+
+    public setFlag(flag: Flags, value: boolean) {
+        const mask = (1 << flag) & 0xFF;
+
+        this.status = (value) ? this.status | mask : this.status & ~mask
+        return
+    }
 
     /**
      * Addressing modes
      */
+
+    private write(addr: number, value: number) {
+
+    }
 
     private read(addr: number): number {
         return 0
@@ -307,7 +313,7 @@ class mos6502 {
 
     // Immediate
     private IMM(): number {
-        const operand = this.read(this.pc + 1)
+        const operand = this.pc + 1
 
         this.pc = this.pc += 2
         //  op(operand)
@@ -319,6 +325,7 @@ class mos6502 {
     // Implicit
     // Instructions like RTS or CLC have no address operand, the destination of results are implied. 
     private IMP(): number {
+        // ACC?
         return 0
     }
 
@@ -426,6 +433,32 @@ class mos6502 {
 
     // Indirect Y
     private IY(): number {
+        return 0
+    }
+
+    /**
+     * https://www.nesdev.org/obelisk-6502-guide/reference.html
+     */
+
+    /**
+     * Arythmetic shift left
+     * @param address 
+     * @returns 
+     */
+    private ASL(address: number) {
+        const implied: boolean = (this.currentInstruction.mode === this.IMP)
+        const data: number = (implied ? this.a : this.read(address)) & 0xFF
+        const result: number = data << 1
+
+        this.setFlag(Flags.C, (data & 0x80) === 0x01) // might need a check
+        this.setFlag(Flags.N, (result & 0x80) === 0x01)
+        this.setFlag(Flags.Z, (result & 0xFF) === 0x00)
+
+        if (implied === true) {
+            this.a = result & 0x00FF
+        } else {
+            this.write(address, result)
+        }
         return 0
     }
 }
