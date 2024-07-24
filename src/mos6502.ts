@@ -1,6 +1,10 @@
 import Flags from "./types/flags"
 import Instruction from "./types/instruction"
 
+type AddressingMode =
+    'IMP' | 'IMM' | 'ABS' | 'ABX' | 'ABY' | 'IND' | 'INX' | 'INY' | 'REL' | 'ZPI' | 'ZPX' | 'ZPY'
+
+
 class mos6502 {
     private a: number = 0x00
     private x: number = 0x00
@@ -13,7 +17,10 @@ class mos6502 {
     
     // looking for a way to remove the matrix from this class, it takes too much space and it makes me want
     // to add this project to my pile of shame
-    // 36 out of 57 instructions
+    // 47 out of 57 instructions
+
+
+
 
     // Illegal instruction will have their special function, I don't think ill implement them so it might be NOPd
     private instructionMatrix: Array<Instruction> = [
@@ -85,22 +92,22 @@ class mos6502 {
             { name: 'AND', mode: this.ABX, op: this.AND, cycles: 4 }, // check
             { name: 'ROL', mode: this.ABX, op: this.ROL, cycles: 7 }, // check
             // Row 4
-            { name: 'RTI', mode: this.IMP, op: this.ABS, cycles: 6 },
-            { name: 'EOR', mode: this.IX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'EOR', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'LSR', mode: this.ZP, op: this.ABS, cycles: 5 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'PHA', mode: this.IMP, op: this.ABS, cycles: 3 },
-            { name: 'EOR', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'LSR', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'JMP', mode: this.ABS, op: this.ABS, cycles: 3 },
-            { name: 'EOR', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'LSR', mode: this.ABS, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'RTI', mode: this.IMP, op: this.RTI, cycles: 6 }, // check
+            { name: 'EOR', mode: this.IX, op: this.EOR, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'EOR', mode: this.ZP, op: this.EOR, cycles: 3 }, //check
+            { name: 'LSR', mode: this.ZP, op: this.LSR, cycles: 5 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'PHA', mode: this.IMP, op: this.PHA, cycles: 3 }, // check
+            { name: 'EOR', mode: this.IMM, op: this.EOR, cycles: 2 }, // check
+            { name: 'LSR', mode: this.IMP, op: this.LSR, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'JMP', mode: this.ABS, op: this.JMP, cycles: 3 }, // check
+            { name: 'EOR', mode: this.ABS, op: this.EOR, cycles: 4 }, // check
+            { name: 'LSR', mode: this.ABS, op: this.LSR, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 5
             { name: 'BVC', mode: this.REL, op: this.BVC, cycles: 2 },
             { name: 'EOR', mode: this.IY, op: this.ABS, cycles: 5 }, // *
@@ -858,6 +865,38 @@ class mos6502 {
     private PLP() {
         this.status = this.read(this.stkp)
         this.stkp = this.stkp + 1
+    }
+
+    private RTI() {
+        this.status = this.read(this.stkp)
+        this.pc = (this.read(this.stkp + 1) >> 8) + this.read(this.stkp + 2)
+        this.stkp = this.stkp + 3
+    }
+
+    private LSR(address: number) {
+        const implied: boolean = (this.currentInstruction.mode === this.IMP)
+        const data: number = (implied ? this.a : this.read(address)) & 0xFF
+        const result: number = (data >> 1) & 0xFF
+
+        this.setFlag(Flags.C, (data & 0x80) === 0x01) // might need a check
+        this.setFlag(Flags.N, (result & 0x80) === 0x01)
+        this.setFlag(Flags.Z, (result & 0xFF) === 0x00)
+
+        if (implied === true) {
+            this.a = result & 0x00FF
+        } else {
+            this.write(address, result)
+        }
+        return 0
+    }
+
+    private PHA() {
+        this.write(this.stkp, this.a)
+        this.stkp = this.stkp + 1
+    }
+
+    private JMP(address) {
+        this.pc = address
     }
 }
 
