@@ -594,6 +594,116 @@ class mos6502 {
         
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
+
+    private CLC() {
+        this.setFlag(Flags.C, false)
+    }
+
+    private CLD() {
+        this.setFlag(Flags.D, false)
+    }
+
+    private CLI() {
+        this.setFlag(Flags.I, false)
+    }
+
+    private CLV() {
+        this.setFlag(Flags.V, false)
+    }
+
+    private LDA(address: number) {
+        this.a = this.read(address)
+
+        this.setFlag(Flags.Z, this.a === 0x00)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
+    }
+
+    private LDX(address: number) {
+        this.x = this.read(address)
+
+        this.setFlag(Flags.Z, this.x === 0x00)
+        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        return 0
+    }
+
+    private LDY(address: number) {
+        this.y = this.read(address)
+
+        this.setFlag(Flags.Z, this.y === 0x00)
+        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        return 0
+    }
+
+    private NOP() {
+        this.pc = this.pc + 1
+        return
+    }
+
+    /**
+     * Set Carry Flag
+     */
+    private SEC() {
+        this.setFlag(Flags.C, true)
+    }
+
+    /**
+     * Set Decimal Flag
+     */
+    private SED() {
+        this.setFlag(Flags.D, true)
+    }
+
+    /**
+     * Set Interrupt Disable
+     */
+    private SEI() {
+        this.setFlag(Flags.I, true)
+    }
+
+    private TAX() {
+        this.x = this.a
+
+        this.setFlag(Flags.Z, this.x === 0x00)
+        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        return 0
+    }
+
+    private TAY() {
+        this.y = this.a
+
+        this.setFlag(Flags.Z, this.y === 0x00)
+        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        return 0
+    }
+
+    private TSX() {
+        this.x = this.stkp
+
+        this.setFlag(Flags.Z, this.x === 0x00)
+        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+    }
+
+    private TXA() {
+        this.a = this.x
+
+        this.setFlag(Flags.Z, this.a === 0x00)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
+    }
+
+    private TXS() {
+        this.stkp = this.x
+        return 0
+    }
+
+    private TYA() {
+        this.a = this.y
+
+        this.setFlag(Flags.Z, this.a === 0x00)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
+    }
 }
 
 export default mos6502
