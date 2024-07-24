@@ -11,6 +11,8 @@ class mos6502 {
 
     private currentInstruction: Instruction = { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }
     
+
+    // 28 out of 57 instructions
     private instructionMatrix: Array<Instruction> = [
             // Row 0
             { name: 'BRK', mode: this.IMP, op: this.ABS, cycles: 7 },
@@ -447,6 +449,16 @@ class mos6502 {
      * https://www.nesdev.org/obelisk-6502-guide/reference.html
      */
 
+    private AND(address: number) {
+        const m = this.read(address)
+
+        this.a = this.a & m
+
+        this.setFlag(Flags.Z, this.a === 0)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
+    }
+
     /**
      * Arythmetic shift left
      * @param address 
@@ -515,6 +527,16 @@ class mos6502 {
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
+    // Does it take a cycle if carry is set or overflow is set??
+    private BIT(address: number) {
+        const value = this.read(address)
+        const res = this.a & value
+
+        this.setFlag(Flags.V, (res & 0x40) === 1)
+        this.setFlag(Flags.N, (res & 0x80) === 1)
+        return 0
+    }
+
     /**
      * Branch if Minus
      * @param relativeAddress 
@@ -561,6 +583,20 @@ class mos6502 {
         this.pc  = oldAddress + relativeAddress & 0xFFFF
         
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
+    }
+
+    private BRK() { //todo: find offset of stack
+        const low = this.read(0xFFFF)
+        const high = this.read(0xFFFE)
+
+        this.setFlag(Flags.B, true)
+        this.setFlag(Flags.I, true);
+        this.write(this.stkp, (this.pc >> 8) & 0x00FF)
+        this.write(this.stkp - 1, this.pc & 0x00FF)
+        this.write(this.stkp - 2, this.status)
+        this.stkp = this.stkp - 3
+        this.pc = ((high << 8) | low) & 0xFFFF 
+        return 0
     }
 
     /**
