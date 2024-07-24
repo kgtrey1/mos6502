@@ -17,7 +17,7 @@ class mos6502 {
     
     // looking for a way to remove the matrix from this class, it takes too much space and it makes me want
     // to add this project to my pile of shame
-    // 47 out of 57 instructions
+    // 48 out of 57 instructions
 
 
 
@@ -126,22 +126,22 @@ class mos6502 {
             { name: 'LSR', mode: this.ABX, op: this.LSR, cycles: 7 }, // check
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 6
-            { name: 'RTS', mode: this.IMP, op: this.ABS, cycles: 6 },
-            { name: 'ADC', mode: this.IX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'ADC', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'ROR', mode: this.ZP, op: this.ABS, cycles: 5 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'PLA', mode: this.IMP, op: this.ABS, cycles: 4 },
-            { name: 'ADC', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'ROR', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'JMP', mode: this.IND, op: this.ABS, cycles: 5 },
-            { name: 'ADC', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'ROR', mode: this.ABS, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'RTS', mode: this.IMP, op: this.RTS, cycles: 6 }, // check
+            { name: 'ADC', mode: this.IX, op: this.ABS, cycles: 6 }, // later cuz hard to understand
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'ADC', mode: this.ZP, op: this.ABS, cycles: 3 }, // later cuz hard to understand
+            { name: 'ROR', mode: this.ZP, op: this.ROR, cycles: 5 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'PLA', mode: this.IMP, op: this.PLA, cycles: 4 }, // check 
+            { name: 'ADC', mode: this.IMM, op: this.ABS, cycles: 2 },  // later cuz hard to understand
+            { name: 'ROR', mode: this.IMP, op: this.ROR, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'JMP', mode: this.IND, op: this.JMP, cycles: 5 }, // check
+            { name: 'ADC', mode: this.ABS, op: this.ABS, cycles: 4 }, // later cuz hard to understand
+            { name: 'ROR', mode: this.ABS, op: this.ROR, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 7
             { name: 'BVS', mode: this.REL, op: this.BVS, cycles: 2 },
             { name: 'ADC', mode: this.IY, op: this.ABS, cycles: 5 }, // *
@@ -897,6 +897,32 @@ class mos6502 {
 
     private JMP(address) {
         this.pc = address
+    }
+
+    private RTS() {
+        this.pc = this.read(this.stkp + 1);
+        this.pc |= this.read(this.stkp + 2) << 8;
+        this.stkp = this.stkp + 3
+        this.pc = this.pc + 1;
+        return 0;
+    }
+
+    // i need to do something about accumulator and the way i fetch data, things are getting out of hands already
+    private ROR(address) {
+        const accumulator = this.currentInstruction.mode === this.IMP
+
+        if (accumulator) {
+            this.setFlag(Flags.C, (this.a & 0x80) === 1)
+            this.a = (this.a << 1)
+            this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        } else {
+            let m = this.read(address)
+
+            this.setFlag(Flags.C, (m & 0x80) === 1)
+            m = (m >> 1) & 0x00FF
+            this.setFlag(Flags.N, (m & 0x80) === 1)
+            this.write(address, m)
+        }
     }
 }
 
