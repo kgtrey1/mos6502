@@ -109,22 +109,22 @@ class mos6502 {
             { name: 'LSR', mode: this.ABS, op: this.LSR, cycles: 6 }, // check
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 5
-            { name: 'BVC', mode: this.REL, op: this.BVC, cycles: 2 },
-            { name: 'EOR', mode: this.IY, op: this.ABS, cycles: 5 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'EOR', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'LSR', mode: this.ZPX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CLI', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'EOR', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'EOR', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
-            { name: 'LSR', mode: this.ABX, op: this.ABS, cycles: 7 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'BVC', mode: this.REL, op: this.BVC, cycles: 2 }, // check
+            { name: 'EOR', mode: this.IY, op: this.EOR, cycles: 5 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'EOR', mode: this.ZPX, op: this.EOR, cycles: 4 }, // check
+            { name: 'LSR', mode: this.ZPX, op: this.LSR, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'CLI', mode: this.IMP, op: this.CLI, cycles: 2 }, // check
+            { name: 'EOR', mode: this.ABY, op: this.EOR, cycles: 4 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'EOR', mode: this.ABX, op: this.EOR, cycles: 4 }, // check
+            { name: 'LSR', mode: this.ABX, op: this.LSR, cycles: 7 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 6
             { name: 'RTS', mode: this.IMP, op: this.ABS, cycles: 6 },
             { name: 'ADC', mode: this.IX, op: this.ABS, cycles: 6 },
