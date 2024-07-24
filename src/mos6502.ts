@@ -32,22 +32,22 @@ class mos6502 {
             { name: 'ASL', mode: this.ABS, op: this.ASL, cycles: 6 }, // check
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
               // Row 1
-            { name: 'BPL', mode: this.REL, op: this.BPL, cycles: 2 },
-            { name: 'ORA', mode: this.IY, op: this.ABS, cycles: 5 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'ORA', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'ASL', mode: this.ZPX, op: this.ASL, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CLC', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'ORA', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'ORA', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
-            { name: 'ASL', mode: this.ABX, op: this.ASL, cycles: 7 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'BPL', mode: this.REL, op: this.BPL, cycles: 2 }, // check
+            { name: 'ORA', mode: this.IY, op: this.ORA, cycles: 5 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'ORA', mode: this.ZPX, op: this.ORA, cycles: 4 }, // check
+            { name: 'ASL', mode: this.ZPX, op: this.ASL, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'CLC', mode: this.IMP, op: this.CLC, cycles: 2 }, // check
+            { name: 'ORA', mode: this.ABY, op: this.ORA, cycles: 4 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'ORA', mode: this.ABX, op: this.ORA, cycles: 4 }, // check
+            { name: 'ASL', mode: this.ABX, op: this.ASL, cycles: 7 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 2
             { name: 'JSR', mode: this.ABS, op: this.ABS, cycles: 6 },
             { name: 'AND', mode: this.IX, op: this.ABS, cycles: 5 }, // *
