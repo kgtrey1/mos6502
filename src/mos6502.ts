@@ -49,22 +49,22 @@ class mos6502 {
             { name: 'ASL', mode: this.ABX, op: this.ASL, cycles: 7 }, // check
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 2
-            { name: 'JSR', mode: this.ABS, op: this.ABS, cycles: 6 },
-            { name: 'AND', mode: this.IX, op: this.ABS, cycles: 5 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'BIT', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'AND', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'ROL', mode: this.ZP, op: this.ABS, cycles: 5 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'PLP', mode: this.IMP, op: this.ABS, cycles: 4 },
-            { name: 'AND', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'ROL', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'BIT', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'ABS', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'ROL', mode: this.ABS, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'JSR', mode: this.ABS, op: this.JSR, cycles: 6 }, // check
+            { name: 'AND', mode: this.IX, op: this.AND, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'BIT', mode: this.ZP, op: this.BIT, cycles: 3 }, // check
+            { name: 'AND', mode: this.ZP, op: this.AND, cycles: 3 }, // check
+            { name: 'ROL', mode: this.ZP, op: this.ROL, cycles: 5 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'PLP', mode: this.IMP, op: this.PLP, cycles: 4 }, // check
+            { name: 'AND', mode: this.IMM, op: this.AND, cycles: 2 }, // check
+            { name: 'ROL', mode: this.IMP, op: this.ROL, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'BIT', mode: this.ABS, op: this.BIT, cycles: 4 }, // check
+            { name: 'AND', mode: this.ABS, op: this.AND, cycles: 4 }, // check
+            { name: 'ROL', mode: this.ABS, op: this.ROL, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 3
             { name: 'BMI', mode: this.REL, op: this.BMI, cycles: 2 },
             { name: 'AND', mode: this.IY, op: this.ABS, cycles: 5 }, // *
@@ -816,6 +816,45 @@ class mos6502 {
     private PHP() {
         this.write(this.stkp, this.status)
         this.stkp = this.stkp - 1
+    }
+
+    private JSR(address) {
+        this.write(this.stkp, ((this.pc - 1) >> 8) & 0x00FF)
+        this.write(this.stkp - 1, (this.pc - 1) & 0x00FF)
+        this.stkp = this.stkp - 2
+        this.pc = address
+    }
+
+    // i need to do something about accumulator and the way i fetch data, things are getting out of hands already
+    private ROL(address) {
+        const accumulator = this.currentInstruction.mode === this.IMP
+
+        if (accumulator) {
+            this.setFlag(Flags.C, (this.a & 0x80) === 1)
+            this.a = (this.a >> 1)
+            this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        } else {
+            let m = this.read(address)
+
+            this.setFlag(Flags.C, (m & 0x80) === 1)
+            m = (m >> 1) & 0x00FF
+            this.setFlag(Flags.N, (m & 0x80) === 1)
+            this.write(address, m)
+        }
+    }
+
+    private PLA() {
+        const m = this.read(this.stkp)
+        this.stkp = this.stkp + 1
+        this.a = m
+
+        this.setFlag(Flags.Z, m === 0)
+        this.setFlag(Flags.N, (m & 0x80) === 1)
+    }
+
+    private PLP() {
+        this.status = this.read(this.stkp)
+        this.stkp = this.stkp + 1
     }
 }
 
