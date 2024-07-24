@@ -143,22 +143,22 @@ class mos6502 {
             { name: 'ROR', mode: this.ABS, op: this.ROR, cycles: 6 }, // check
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 7
-            { name: 'BVS', mode: this.REL, op: this.BVS, cycles: 2 },
-            { name: 'ADC', mode: this.IY, op: this.ABS, cycles: 5 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'ADC', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'ROR', mode: this.ZPX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'SEI', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'ADC', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'ADC', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
-            { name: 'ROR', mode: this.ABX, op: this.ABS, cycles: 7 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'BVS', mode: this.REL, op: this.BVS, cycles: 2 }, // check
+            { name: 'ADC', mode: this.IY, op: this.ABS, cycles: 5 }, // later cuz hard to understand
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'ADC', mode: this.ZPX, op: this.ABS, cycles: 4 }, // later cuz hard to understand
+            { name: 'ROR', mode: this.ZPX, op: this.ROR, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'SEI', mode: this.IMP, op: this.SEI, cycles: 2 }, // check
+            { name: 'ADC', mode: this.ABY, op: this.ABS, cycles: 4 }, // later cuz hard to understand
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'ADC', mode: this.ABX, op: this.ABS, cycles: 4 }, // later cuz hard to understand
+            { name: 'ROR', mode: this.ABX, op: this.ROR, cycles: 7 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 8
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
             { name: 'STA', mode: this.IX, op: this.ABS, cycles: 6 },
