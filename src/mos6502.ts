@@ -13,13 +13,20 @@ class mos6502 {
     private stkp: number = 0x00
     private status: number = 0x00
 
+    private addressingModes: { [code in AddressingMode]: () => number }
+
     private currentInstruction: Instruction = { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }
     
     // looking for a way to remove the matrix from this class, it takes too much space and it makes me want
     // to add this project to my pile of shame
     // 48 out of 57 instructions
 
-
+    constructor() {
+        this.addressingModes = {
+            'IMP': this.IMP, 'IMM': this.IMM, 'ABS': this.ABS, 'ABX': this.ABX, 'ABY': this.ABY, 'IND': this.IND,
+            'INX': this.IX, 'INY': this.IY, 'REL': this.REL, 'ZPI': this.ZP, 'ZPX': this.ZPX, 'ZPY': this.ZPY
+        }
+    }
 
 
     // Illegal instruction will have their special function, I don't think ill implement them so it might be NOPd
@@ -160,22 +167,22 @@ class mos6502 {
             { name: 'ROR', mode: this.ABX, op: this.ROR, cycles: 7 }, // check
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 8
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'STA', mode: this.IX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'STY', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'STA', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'STX', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'DEY', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'TXA', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'STY', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'STA', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'STX', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'STA', mode: this.IX, op: this.STA, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'STY', mode: this.ZP, op: this.STY, cycles: 3 }, // check
+            { name: 'STA', mode: this.ZP, op: this.STA, cycles: 3 }, // check
+            { name: 'STX', mode: this.ZP, op: this.STX, cycles: 3 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'DEY', mode: this.IMP, op: this.DEY, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'TXA', mode: this.IMP, op: this.TXA, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'STY', mode: this.ABS, op: this.STY, cycles: 4 }, // check
+            { name: 'STA', mode: this.ABS, op: this.STA, cycles: 4 }, // check
+            { name: 'STX', mode: this.ABS, op: this.STX, cycles: 4 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 9
             { name: 'BCC', mode: this.REL, op: this.BCC, cycles: 2 },
             { name: 'STA', mode: this.IY, op: this.ABS, cycles: 6 },
@@ -923,6 +930,19 @@ class mos6502 {
             this.setFlag(Flags.N, (m & 0x80) === 1)
             this.write(address, m)
         }
+    }
+
+    private STA(address) {
+        this.write(address, this.a)
+    }
+
+    private STX(address) {
+        this.write(address, this.x)
+    }
+
+
+    private STY(address) {
+        this.write(address, this.y)
     }
 }
 
