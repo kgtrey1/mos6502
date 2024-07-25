@@ -19,7 +19,7 @@ class mos6502 {
     
     // looking for a way to remove the matrix from this class, it takes too much space and it makes me want
     // to add this project to my pile of shame
-    // 48 out of 57 instructions
+    // 51 out of 57 instructions
 
     constructor() {
         this.addressingModes = {
@@ -184,39 +184,39 @@ class mos6502 {
             { name: 'STX', mode: this.ABS, op: this.STX, cycles: 4 }, // check
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row 9
-            { name: 'BCC', mode: this.REL, op: this.BCC, cycles: 2 },
-            { name: 'STA', mode: this.IY, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'STY', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'STA', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'STX', mode: this.ZPY, op: this.ABS, cycles: 4 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'TYA', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'STA', mode: this.ABY, op: this.ABS, cycles: 5 },
-            { name: 'TXS', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'STA', mode: this.ABX, op: this.ABS, cycles: 5 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'BCC', mode: this.REL, op: this.BCC, cycles: 2 }, // check
+            { name: 'STA', mode: this.IY, op: this.STA, cycles: 6 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'STY', mode: this.ZPX, op: this.STY, cycles: 4 }, // check
+            { name: 'STA', mode: this.ZPX, op: this.STA, cycles: 4 }, // check
+            { name: 'STX', mode: this.ZPY, op: this.STX, cycles: 4 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'TYA', mode: this.IMP, op: this.TYA, cycles: 2 }, // check
+            { name: 'STA', mode: this.ABY, op: this.STA, cycles: 5 }, // check
+            { name: 'TXS', mode: this.IMP, op: this.TXS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'STA', mode: this.ABX, op: this.STA, cycles: 5 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row A
-            { name: 'LDY', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'LDA', mode: this.IX, op: this.ABS, cycles: 6 },
-            { name: 'LDX', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'LDY', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'LDA', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'LDX', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'TAY', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'LDA', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'TAX', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'LDY', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'LDA', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'LDX', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'LDY', mode: this.IMM, op: this.LDY, cycles: 2 }, // check
+            { name: 'LDA', mode: this.IX, op: this.LDA, cycles: 6 }, // check
+            { name: 'LDX', mode: this.IMM, op: this.LDX, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'LDY', mode: this.ZP, op: this.LDY, cycles: 3 }, //check
+            { name: 'LDA', mode: this.ZP, op: this.LDA, cycles: 3 }, // check
+            { name: 'LDX', mode: this.ZP, op: this.LDX, cycles: 3 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'TAY', mode: this.IMP, op: this.TAY, cycles: 2 }, // check
+            { name: 'LDA', mode: this.IMM, op: this.LDA, cycles: 2 }, // check
+            { name: 'TAX', mode: this.IMP, op: this.TAX, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'LDY', mode: this.ABS, op: this.LDY, cycles: 4 }, // check
+            { name: 'LDA', mode: this.ABS, op: this.LDA, cycles: 4 }, // check
+            { name: 'LDX', mode: this.ABS, op: this.LDX, cycles: 4 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row B
             { name: 'BCS', mode: this.REL, op: this.BCS, cycles: 2 },
             { name: 'LDA', mode: this.IY, op: this.ABS, cycles: 5 }, // *
