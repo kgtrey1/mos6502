@@ -218,22 +218,22 @@ class mos6502 {
             { name: 'LDX', mode: this.ABS, op: this.LDX, cycles: 4 }, // check
             { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row B
-            { name: 'BCS', mode: this.REL, op: this.BCS, cycles: 2 },
-            { name: 'LDA', mode: this.IY, op: this.ABS, cycles: 5 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'LDY', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'LDA', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'LDX', mode: this.ZPY, op: this.ABS, cycles: 4 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CLV', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'LDA', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
-            { name: 'TSX', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'LDY', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
-            { name: 'LDA', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
-            { name: 'LDX', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
+            { name: 'BCS', mode: this.REL, op: this.BCS, cycles: 2 }, // check
+            { name: 'LDA', mode: this.IY, op: this.LDA, cycles: 5 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'LDY', mode: this.ZPX, op: this.LDY, cycles: 4 }, // check
+            { name: 'LDA', mode: this.ZPX, op: this.LDA, cycles: 4 }, // check
+            { name: 'LDX', mode: this.ZPY, op: this.LDX, cycles: 4 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'CLV', mode: this.IMP, op: this.CLV, cycles: 2 }, // check
+            { name: 'LDA', mode: this.ABY, op: this.LDA, cycles: 4 }, // check
+            { name: 'TSX', mode: this.IMP, op: this.TSX, cycles: 2 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
+            { name: 'LDY', mode: this.ABX, op: this.LDY, cycles: 4 }, // check
+            { name: 'LDA', mode: this.ABX, op: this.LDA, cycles: 4 }, // check
+            { name: 'LDX', mode: this.ABY, op: this.LDX, cycles: 4 }, // check
+            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
             // Row C
             { name: 'CPY', mode: this.IMM, op: this.ABS, cycles: 2 },
             { name: 'CMP', mode: this.IX, op: this.ABS, cycles: 6 },
