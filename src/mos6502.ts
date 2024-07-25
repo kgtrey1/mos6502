@@ -12,6 +12,9 @@ class mos6502 {
     private addressingModes: AddressingModesMap
     private instructionsMap: InstructionsMap
 
+
+    private addr: number = 0x00
+
     private currentInstruction: Instruction = { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }
     
     // looking for a way to remove the matrix from this class, it takes too much space and it makes me want
@@ -60,9 +63,7 @@ class mos6502 {
         return
     }
 
-    /**
-     * Addressing modes
-     */
+
 
     private write(addr: number, value: number) {
 
@@ -72,128 +73,175 @@ class mos6502 {
         return 0
     }
 
-    // Immediate
-    private IMM(): number {
-        const operand = this.pc + 1
+    /* Addressing modes */
 
-        this.pc = this.pc += 2
-        //  op(operand)
-
-
-        return 0
-    }
-
-    // Implicit
-    // Instructions like RTS or CLC have no address operand, the destination of results are implied. 
+    /**
+     * Implied Addressing mode.
+     * 
+     * No address operand, we do nothing
+     * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
+     */
     private IMP(): number {
-        // ACC?
-        return 0
-    }
-
-    // Relative addressing
-    // used on branching to establish a destination
-    // Second byte is an 
-    private REL(): number {
-        const offset = this.read(this.pc) & 0xFF
-
-        // op(offset)
         return 0
     }
 
     /**
-     * Zero Page address mode.
-     * Assume that the higher byte will be 0x00 (page 1)
-     * Read a byte from PC to get the 8 lower bits of the address.
+     * Immediate Addressing mode.
+     * 
+     * Use the next byte as a value
+     * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private ZP(): number {
-        const low = this.read(this.pc + 1) & 0xFF
-
-        this.pc = this.pc + 2
-
-        const addr = low & 0xFF
-        // op(addr)
+    private IMM(): number {
+        this.pc = (this.pc + 1) & 0xFFFF
+        this.addr = this.pc
         return 0
     }
 
     /**
-     * Indexed Zero Page (X) addressing.
-     * Read a byte from PC to get the 8 lower bits of the address.
-     * Read a byte from PC to get the 8 lower bits of the address.
-     */
-    private ZPX(): number {
-        const offset = this.read(this.pc + this.x) & 0xFF
-        this.pc = this.pc + 1
-        // op(offset)
-        return 0
-    }
-
-    /**
-     * Indexed Zero Page (X) addressing.
-     * Read a byte from PC to get the 8 lower bits of the address.
-     * Read a byte from PC to get the 8 lower bits of the address.
-     */
-    private ZPY(): number {
-        const offset = this.read(this.pc + this.y) & 0xFF
-        this.pc = this.pc + 1
-        // op(offset)
-        return 0
-    }
-
-    /**
-     * Absolute address mode.
-     * Read one byte from PC to get the 8 lower bits of the address.
-     * Read a second byte from PC to get the 8 higher bits of the address.
+     * Absolute Addressing mode.
+     * 
+     * The address of the value that the instruction will use is located in the next to bytes.
+     * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
     private ABS(): number {
-        const low = this.read(this.pc + 1)
-        const high = this.read(this.pc + 2)
-        this.pc = this.pc + 3
+        const low = this.read(this.pc)
+        const high = this.read((this.pc + 1) & 0xFFFF)
 
-        const addr = ((high << 8) | low) & 0xFFFF 
-
-        // op(addr)
+        this.pc = (this.pc + 2) & 0xFFFF
+        this.addr = (high << 8) | low
         return 0
     }
 
-    // Absolute indexed X
+    /**
+     * Absolute with X index Addressing mode.
+     * 
+     * The address of the value that the instruction will use is located in the next to bytes.
+     * @returns {number} 1 if a page is crossed, else 0.
+     */
     private ABX(): number {
-        const low = this.read(this.pc + this.x)
-        const high = this.read(this.pc + this.x)
-        this.pc = this.pc + 3
+        const low = this.read(this.pc)
+        const high = this.read((this.pc + 1) & 0xFFFF)
 
-        const addr = ((high << 8) | low) & 0xFFFF 
-
-        return ((addr & 0xFF00) != (high << 8)) ? 1 : 0
-        // op(addr)
-        return 0
+        this.pc = (this.pc + 2) & 0xFFFF
+        this.addr = (((high << 8) | low) + this.x) & 0xFFFF
+        return (this.addr & 0xFF00) === (high << 8) ? 0 : 1
     }
 
-    // Absolute indexed Y
+    /**
+     * Absolute with Y index Addressing mode.
+     * 
+     * The address of the value that the instruction will use is located in the next to bytes.
+     * @returns {number} 1 if a page is crossed, else 0.
+     */
     private ABY(): number {
-        const low = this.read(this.pc + this.y)
-        const high = this.read(this.pc + this.y)
-        this.pc = this.pc + 3
+        const low = this.read(this.pc)
+        const high = this.read((this.pc + 1) & 0xFFFF)
 
-        const addr = ((high << 8) | low) & 0xFFFF 
-
-        return ((addr & 0xFF00) != (high << 8)) ? 1 : 0
-            // return op() + 1
-        // return op(addr)
-        return 0
+        this.pc = (this.pc + 2) & 0xFFFF
+        this.addr = (((high << 8) | low) + this.y) & 0xFFFF
+        return (this.addr & 0xFF00) === (high << 8) ? 0 : 1
     }
 
-    // Indirect
+    /**
+     * Indirect Addressing mode.
+     * 
+     * Read two bytes to form a 16 bits address. These two bytes are located
+     * at the address that we get after reading the next two bytes.
+     * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
+     */
     private IND(): number {
+        const low = this.read(this.pc)
+        const high = this.read((this.pc + 1) & 0xFFFF)
+        const address = (high << 8) | low;
+
+        this.pc = (this.pc + 2) & 0xFFFF
+        this.addr = this.read(address) | (this.read(address + 1) << 8);        
         return 0
     }
 
-    // Indirect X
+    /**
+     * Indirect with X index Addressing mode.
+     * 
+     * Indirect with an offset equal to X.
+     * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
+     */
     private IX(): number {
+        const loc = this.read(this.pc);
+
+        this.pc = (this.pc + 1) & 0xFFFF
+        this.addr = (this.read((loc + this.x + 1) & 0xFF) << 8) | this.read(loc + this.x & 0xFF)   
         return 0
     }
 
-    // Indirect Y
+    /**
+     * Indirect with Y index Addressing mode.
+     * 
+     * Indirect with an offset equal to Y.
+     * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
+     */
     private IY(): number {
+        const loc = this.read(this.pc);
+
+        this.pc = (this.pc + 1) & 0xFFFF
+        this.addr = (this.read((loc + this.y + 1) & 0xFF) << 8) | this.read(loc + this.y & 0xFF)   
+        return 0
+    }
+
+    /**
+     * Relative Addressing mode.
+     *
+     * Used by branching instruction. A signed one bit offset is used to indicate the jump location.
+     * @returns 
+     */
+    private REL(): number {
+        this.addr = this.read(this.pc) & 0xFF
+        this.pc = this.pc + 1
+
+        if (this.addr & 0x80) {
+            this.addr = this.addr | 0xFF00
+        }
+        return 0
+    }
+
+    /**
+     * Zero Page Addressing mode.
+     * 
+     * We assume that the value is located on page 0, at the offset indicated by the next byte.
+     * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
+     */
+    private ZP(): number {
+        const low = this.read(this.pc)
+
+        this.addr = low & 0x00FF
+        this.pc = this.pc + 1
+        return 0
+    }
+
+    /**
+     * Zero Page with X index Addressing mode.
+     * 
+     * We assume that the value is located on page 0, at the offset indicated by the next + x byte.
+     * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
+     */
+    private ZPX(): number {
+        const low = this.read((this.pc + this.x) & 0xFFFF)
+
+        this.addr = low & 0x00FF
+        this.pc = this.pc + 1
+        return 0
+    }
+
+    /**
+     * Zero Page with X index Addressing mode.
+     * 
+     * We assume that the value is located on page 0, at the offset indicated by the next + y byte.
+     * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
+     */
+    private ZPY(): number {
+        const low = this.read((this.pc + this.y) & 0xFFFF)
+
+        this.addr = low & 0x00FF
+        this.pc = this.pc + 1
         return 0
     }
 
