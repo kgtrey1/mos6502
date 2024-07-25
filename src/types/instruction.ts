@@ -15,19 +15,19 @@ export type Instructions =
     'BVS' | 'CLC' | 'CLD' | 'CLI' | 'CLV' | 'CMP' | 'CPX' | 'CPY' | 'DEC' | 'DEX' | 'DEY' | 'EOR' |
     'INC' | 'INX' | 'INY' | 'JMP' | 'JSR' | 'LDA' | 'LDX' | 'LDY' | 'LSR' | 'NOP' | 'ORA' | 'PHA' |
     'PHP' | 'PLA' | 'PLP' | 'ROL' | 'ROR' | 'RTI' | 'RTS' | 'SBC' | 'SEC' | 'SED' | 'SEI' | 'STA' |
-    'STX' | 'STY' | 'TAX' | 'TAY' | 'TSX' | 'TXA' | 'TXS' | 'TYA'
+    'STX' | 'STY' | 'TAX' | 'TAY' | 'TSX' | 'TXA' | 'TXS' | 'TYA' | '???'
 
 export type AddressingModes =
     'IMP' | 'IMM' | 'ABS' | 'ABX' | 'ABY' | 'IND' | 'INX' | 'INY' | 'REL' | 'ZPI' | 'ZPX' | 'ZPY'
 
-interface Test {
+export interface Test {
     instruction: Instructions
     addressing: AddressingModes
     cycles: number
 }
 
 export type AddressingModesMap = { [code in AddressingModes ] : () => number }
-export type InstructionsMap = { [code in Instructions ] : any}
+export type InstructionsMap = { [code in Instructions ] : () => number }
 
 const matrix: ReadonlyMap<number, Test> = new Map<number, Test>([
     [0x00, { instruction: 'BRK', addressing: 'IMP', cycles: 7 }],
@@ -182,3 +182,16 @@ const matrix: ReadonlyMap<number, Test> = new Map<number, Test>([
     [0xFD, { instruction: 'SBC', addressing: 'ABX', cycles: 4 }],
     [0xFE, { instruction: 'INC', addressing: 'ABX', cycles: 7 }],
 ])
+
+export const decode = (opcode: number): Test => {
+    const op = matrix.get(opcode)
+
+    if (op === undefined) {
+        return {
+            instruction: '???',
+            addressing: 'IMP',
+            cycles: 2,
+        }
+    }
+    return op
+}

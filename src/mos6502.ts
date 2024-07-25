@@ -1,5 +1,5 @@
 import Flags from "./types/flags"
-import Instruction, { AddressingModesMap, InstructionsMap } from "./types/instruction"
+import Instruction, { AddressingModesMap, InstructionsMap, Test, decode } from "./types/instruction"
 
 class mos6502 {
     private a: number = 0x00
@@ -15,11 +15,7 @@ class mos6502 {
 
     private addr: number = 0x00
 
-    private currentInstruction: Instruction = { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }
-    
-    // looking for a way to remove the matrix from this class, it takes too much space and it makes me want
-    // to add this project to my pile of shame
-    // 51 out of 57 instructions
+    private currentInstruction: Test = { instruction: '???', addressing: 'IMP', cycles: 2 }
 
     constructor() {
         const t = this
@@ -38,21 +34,21 @@ class mos6502 {
             PHP: t.PHP, PLA: t.PLA, PLP: t.PLP, ROL: t.ROL, ROR: t.ROR, RTI: t.RTI,
             RTS: t.RTS, SBC: t.SBC, SEC: t.SEC, SED: t.SED, SEI: t.SEI, STA: t.STA,
             STX: t.STX, STY: t.STY, TAX: t.TAX, TAY: t.TAY, TSX: t.TSX, TXA: t.TXA,
-            TXS: t.TXS, TYA: t.TYA,
+            TXS: t.TXS, TYA: t.TYA, '???': t.ABS
         }
     }
 
     public simulate() {
-        const opcode = this.read(this.pc) & 0xFF
-        this.currentInstruction = this.instructionMatrix[opcode]
+        this.currentInstruction = decode(this.read(this.pc) & 0xFF)
 
-
+        let cycles = this.currentInstruction.cycles
+        cycles = cycles + this.addressingModes[this.currentInstruction.addressing]()
+        cycles = cycles + this.instructionsMap[this.currentInstruction.instruction]()
     }
 
     public getFlag (flag: Flags) {
-        // Create a bitmask by shifting 1 to the left by n positions
       const mask = 1 << flag;
-      // Use bitwise AND to extract the bit at position n
+
       return (this.status & mask) !== 0 ? 1 : 0
   }
 
@@ -63,17 +59,15 @@ class mos6502 {
         return
     }
 
-
-
-    private write(addr: number, value: number) {
-
-    }
+    private write(addr: number, value: number) {}
 
     private read(addr: number): number {
         return 0
     }
 
+
     /* Addressing modes */
+
 
     /**
      * Implied Addressing mode.
@@ -245,145 +239,106 @@ class mos6502 {
         return 0
     }
 
+
     /**
-     * https://www.nesdev.org/obelisk-6502-guide/reference.html
-     * todo: check potential overflow (js is working in 64bits and no way to use 16bits or 8 bits)
-     * this mean potential issue on any sub or add made on a number
+     * Instructions
+     * reference: https://www.nesdev.org/obelisk-6502-guide/reference.html
      */
 
-    private AND(address: number) {
-        const m = this.read(address)
+
+    private AND() {
+        const m = this.read(this.addr)
 
         this.a = this.a & m
-
-        this.setFlag(Flags.Z, this.a === 0)
+        this.setFlag(Flags.Z, this.a === 0x00)
         this.setFlag(Flags.N, (this.a & 0x80) === 1)
         return 0
     }
 
-    /**
-     * Arythmetic shift left
-     * @param address 
-     * @returns 
-     */
-    private ASL(address: number) {
-        const implied: boolean = (this.currentInstruction.mode === this.IMP)
-        const data: number = (implied ? this.a : this.read(address)) & 0xFF
-        const result: number = data << 1
+    private ASL() {
+        const implied: boolean = (this.currentInstruction.addressing === 'IMP')
+        const data: number = (implied ? this.a : this.read(this.addr))
+        const result: number = (data << 1) & 0xFFFF
 
-        this.setFlag(Flags.C, (data & 0x80) === 0x01) // might need a check
+        this.setFlag(Flags.C, (result & 0xFF00) > 0x00)
         this.setFlag(Flags.N, (result & 0x80) === 0x01)
         this.setFlag(Flags.Z, (result & 0xFF) === 0x00)
 
         if (implied === true) {
             this.a = result & 0x00FF
         } else {
-            this.write(address, result)
+            this.write(this.addr, result & 0x00FF)
         }
         return 0
     }
 
-    /**
-     * Branch if Carry Clear
-     * @param relativeAddress 
-     * @returns 
-     */
-    private BCC(relativeAddress: number) {
+    private BCC() {
         if (this.getFlag(Flags.C) === 1) {
             return 0
         }
-        const oldAddress = this.pc & 0xFFFF
-        this.pc  = oldAddress + relativeAddress & 0xFFFF
-        
+        const oldAddress = this.pc
+
+        this.pc  = (oldAddress + this.addr) & 0xFFFF
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    /**
-     * Branch if Carry Clear
-     * @param relativeAddress 
-     * @returns 
-     */
-    private BCS(relativeAddress: number) {
+    private BCS() {
         if (this.getFlag(Flags.C) === 0) {
             return 0
         }
-        const oldAddress = this.pc & 0xFFFF
-        this.pc  = oldAddress + relativeAddress & 0xFFFF
-        
+        const oldAddress = this.pc
+
+        this.pc  = (oldAddress + this.addr) & 0xFFFF
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    /**
-     * Branch if Equal
-     * @param relativeAddress 
-     * @returns 
-     */
-    private BEQ(relativeAddress: number) {
+    private BEQ() {
         if (this.getFlag(Flags.Z) === 0) {
             return 0
         }
+        const oldAddress = this.pc
 
-        const oldAddress = this.pc & 0xFFFF
-        this.pc  = oldAddress + relativeAddress & 0xFFFF
-        
+        this.pc  = (oldAddress + this.addr) & 0xFFFF
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    // Does it take a cycle if carry is set or overflow is set??
-    private BIT(address: number) {
-        const value = this.read(address)
-        const res = this.a & value
+    private BIT() {
+        const m = this.read(this.addr)
+        const result = this.a & m
 
-        this.setFlag(Flags.V, (res & 0x40) === 1)
-        this.setFlag(Flags.N, (res & 0x80) === 1)
+        this.setFlag(Flags.Z, (result === 0x00))
+        this.setFlag(Flags.V, (m & 0x40) === 1)
+        this.setFlag(Flags.N, (m & 0x80) === 1)
         return 0
     }
 
-    /**
-     * Branch if Minus
-     * @param relativeAddress 
-     * @returns 
-     */
-    private BMI(relativeAddress: number) {
+    private BMI() {
         if (this.getFlag(Flags.N) === 0) {
             return 0
         }
+        const oldAddress = this.pc
 
-        const oldAddress = this.pc & 0xFFFF
-        this.pc  = oldAddress + relativeAddress & 0xFFFF
-        
+        this.pc  = (oldAddress + this.addr) & 0xFFFF
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    /**
-     * Branch if Not Equal
-     * @param relativeAddress 
-     * @returns 
-     */
-    private BNE(relativeAddress: number) {
+    private BNE() {
         if (this.getFlag(Flags.Z) === 1) {
             return 0
         }
+        const oldAddress = this.pc
 
-        const oldAddress = this.pc & 0xFFFF
-        this.pc  = oldAddress + relativeAddress & 0xFFFF
-        
+        this.pc  = (oldAddress + this.addr) & 0xFFFF
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    /**
-     * Branch if Positive
-     * @param relativeAddress 
-     * @returns 
-     */
-    private BPL(relativeAddress: number) {
+    private BPL() {
         if (this.getFlag(Flags.N) === 1) {
             return 0
         }
+        const oldAddress = this.pc
 
-        const oldAddress = this.pc & 0xFFFF
-        this.pc  = oldAddress + relativeAddress & 0xFFFF
-        
+        this.pc  = (oldAddress + this.addr) & 0xFFFF
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
@@ -401,183 +356,82 @@ class mos6502 {
         return 0
     }
 
-    /**
-     * Branch if Overflow Clear
-     * @param relativeAddress 
-     * @returns 
-     */
-    private BVC(relativeAddress: number) {
+    private BVC() {
         if (this.getFlag(Flags.V) === 1) {
             return 0
         }
 
-        const oldAddress = this.pc & 0xFFFF
-        this.pc  = oldAddress + relativeAddress & 0xFFFF
-        
+        const oldAddress = this.pc
+
+        this.pc  = (oldAddress + this.addr) & 0xFFFF
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    /**
-     * Branch if Overflow Set
-     * @param relativeAddress 
-     * @returns 
-     */
-    private BVS(relativeAddress: number) {
+    private BVS() {
         if (this.getFlag(Flags.V) === 0) {
             return 0
         }
+        const oldAddress = this.pc
 
-        const oldAddress = this.pc & 0xFFFF
-        this.pc  = oldAddress + relativeAddress & 0xFFFF
-        
+        this.pc  = (oldAddress + this.addr) & 0xFFFF
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
     private CLC() {
         this.setFlag(Flags.C, false)
+        return 0
     }
 
     private CLD() {
         this.setFlag(Flags.D, false)
+        return 0
     }
 
     private CLI() {
         this.setFlag(Flags.I, false)
+        return 0
     }
 
     private CLV() {
         this.setFlag(Flags.V, false)
-    }
-
-    private LDA(address: number) {
-        this.a = this.read(address)
-
-        this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
         return 0
     }
 
-    private LDX(address: number) {
-        this.x = this.read(address)
-
-        this.setFlag(Flags.Z, this.x === 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) === 1)
-        return 0
-    }
-
-    private LDY(address: number) {
-        this.y = this.read(address)
-
-        this.setFlag(Flags.Z, this.y === 0x00)
-        this.setFlag(Flags.N, (this.y & 0x80) === 1)
-        return 0
-    }
-
-    private NOP() {
-        this.pc = this.pc + 1
-        return
-    }
-
-    /**
-     * Set Carry Flag
-     */
-    private SEC() {
-        this.setFlag(Flags.C, true)
-    }
-
-    /**
-     * Set Decimal Flag
-     */
-    private SED() {
-        this.setFlag(Flags.D, true)
-    }
-
-    /**
-     * Set Interrupt Disable
-     */
-    private SEI() {
-        this.setFlag(Flags.I, true)
-    }
-
-    private TAX() {
-        this.x = this.a
-
-        this.setFlag(Flags.Z, this.x === 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) === 1)
-        return 0
-    }
-
-    private TAY() {
-        this.y = this.a
-
-        this.setFlag(Flags.Z, this.y === 0x00)
-        this.setFlag(Flags.N, (this.y & 0x80) === 1)
-        return 0
-    }
-
-    private TSX() {
-        this.x = this.stkp
-
-        this.setFlag(Flags.Z, this.x === 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) === 1)
-    }
-
-    private TXA() {
-        this.a = this.x
-
-        this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
-        return 0
-    }
-
-    private TXS() {
-        this.stkp = this.x
-        return 0
-    }
-
-    private TYA() {
-        this.a = this.y
-
-        this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
-        return 0
-    }
-
-    private CMP(address: number) {
-        const m = this.read(address)
+    private CMP() {
+        const m = this.read(this.addr)
 
         this.setFlag(Flags.Z, this.a === m)
         this.setFlag(Flags.C, this.a >= m)
-        this.setFlag(Flags.N, ((this.a - m) & 0x80) === 1)
-        return
+        this.setFlag(Flags.N, (((this.a - m) & 0xFF) & 0x80) === 1)
+        return 0
     }
 
-    private CPX(address: number) {
-        const m = this.read(address)
+    private CPX() {
+        const m = this.read(this.addr)
 
         this.setFlag(Flags.Z, this.x === m)
         this.setFlag(Flags.C, this.x >= m)
         this.setFlag(Flags.N, (((this.x - m) & 0xFF) & 0x80) === 1)
-        return
+        return 0
     }
 
-    private CPY(address: number) {
-        const m = this.read(address)
+    private CPY() {
+        const m = this.read(this.addr)
 
         this.setFlag(Flags.Z, this.y === m)
         this.setFlag(Flags.C, this.y >= m)
         this.setFlag(Flags.N, (((this.y - m) & 0xFF) & 0x80) === 1)
-        return
+        return 0
     }
 
-    private DEC(address: number) {
-        const m = this.read(address)
+    private DEC() {
+        const m = this.read(this.addr)
         const result = (m - 1) & 0x00FF
 
-        this.write(address, result)
+        this.write(this.addr, result)
         this.setFlag(Flags.Z, result === 0)
         this.setFlag(Flags.N, (result & 0x80) === 1)
-        
+        return 0
     }
 
     private DEX() {
@@ -585,6 +439,7 @@ class mos6502 {
 
         this.setFlag(Flags.Z, this.x === 0x00)
         this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        return 0
     }
 
     private DEY() {
@@ -592,42 +447,137 @@ class mos6502 {
 
         this.setFlag(Flags.Z, this.y === 0x00)
         this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        return 0
     }
 
-    private EOR(address: number) {
-        const m = this.read(address)
+    private EOR() {
+        const m = this.read(this.addr)
 
         this.a = this.a ^ m
-
         this.setFlag(Flags.Z, this.a === 0x00)
         this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
     }
 
-    private ORA(address) {
-        const m = this.read(address)
+    private INC() {
+        const m = this.read(this.addr)
+        const result = (m + 1) & 0xFF
+
+        this.write(this.addr, result)
+        this.setFlag(Flags.Z, result == 0x00)
+        this.setFlag(Flags.N, (result & 0x80) === 1)
+        return 0
+    }
+
+    private INX() {
+        this.x = (this.x + 1) & 0xFF
+
+        this.setFlag(Flags.Z, this.x == 0x00)
+        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        return 0
+    }
+
+    private INY() {
+        this.y = (this.y + 1) & 0xFF
+
+        this.setFlag(Flags.Z, this.y == 0x00)
+        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        return 0
+    }
+
+    private JMP() {
+        this.pc = this.addr
+        return 0
+    }
+
+    private JSR() {
+        this.write(this.stkp, ((this.pc - 1) >> 8) & 0x00FF)
+        this.write(this.stkp - 1, (this.pc - 1) & 0x00FF)
+        this.stkp = this.stkp - 2
+        this.pc = this.addr
+        return 0
+    }
+
+    private LDA() {
+        this.a = this.read(this.addr)
+        this.setFlag(Flags.Z, this.a === 0x00)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
+    }
+
+    private LDX() {
+        this.x = this.read(this.addr)
+        this.setFlag(Flags.Z, this.x === 0x00)
+        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        return 0
+    }
+
+    private LDY() {
+        this.y = this.read(this.addr)
+
+        this.setFlag(Flags.Z, this.y === 0x00)
+        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        return 0
+    }
+
+    private LSR() {
+        const implied: boolean = (this.currentInstruction.addressing === 'IMP')
+        const data: number = (implied ? this.a : this.read(this.addr)) & 0xFF
+        const result: number = (data >> 1) & 0xFF
+
+        this.setFlag(Flags.C, (data & 0x01) === 1)
+        this.setFlag(Flags.N, (result & 0x80) === 1)
+        this.setFlag(Flags.Z, result === 0)
+        if (implied === true) {
+            this.a = result
+        } else {
+            this.write(this.addr, result)
+        }
+        return 0
+    }
+
+    private NOP() {
+        return 0
+    }
+
+    private ORA() {
+        const m = this.read(this.addr)
 
         this.a = this.a | m
 
         this.setFlag(Flags.Z, this.a === 0x00)
         this.setFlag(Flags.N, (this.a & 0x80) === 1)
-        return
+        return 0
+    }
+
+    private PHA() {
+        this.write(this.stkp, this.a)
+        this.stkp = this.stkp - 1
+        return 0
     }
 
     private PHP() {
         this.write(this.stkp, this.status)
         this.stkp = this.stkp - 1
+        return 0
     }
 
-    private JSR(address) {
-        this.write(this.stkp, ((this.pc - 1) >> 8) & 0x00FF)
-        this.write(this.stkp - 1, (this.pc - 1) & 0x00FF)
-        this.stkp = this.stkp - 2
-        this.pc = address
+    private PLA() {
+        this.stkp = this.stkp + 1
+        this.a = this.read(this.stkp)
+        this.setFlag(Flags.Z, this.a === 0)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
     }
 
-    // i need to do something about accumulator and the way i fetch data, things are getting out of hands already
-    private ROL(address) {
-        const accumulator = this.currentInstruction.mode === this.IMP
+    private PLP() {
+        this.stkp = this.stkp + 1
+        this.status = this.read(this.stkp)
+        return 0
+    }
+
+    private ROL() {
+        const accumulator = this.currentInstruction.addressing === 'IMP'
 
         if (accumulator) {
             this.setFlag(Flags.C, (this.a & 0x80) === 1)
@@ -643,61 +593,6 @@ class mos6502 {
         }
     }
 
-    private PLA() {
-        const m = this.read(this.stkp)
-        this.stkp = this.stkp + 1
-        this.a = m
-
-        this.setFlag(Flags.Z, m === 0)
-        this.setFlag(Flags.N, (m & 0x80) === 1)
-    }
-
-    private PLP() {
-        this.status = this.read(this.stkp)
-        this.stkp = this.stkp + 1
-    }
-
-    private RTI() {
-        this.status = this.read(this.stkp)
-        this.pc = (this.read(this.stkp + 1) >> 8) + this.read(this.stkp + 2)
-        this.stkp = this.stkp + 3
-    }
-
-    private LSR(address: number) {
-        const implied: boolean = (this.currentInstruction.mode === this.IMP)
-        const data: number = (implied ? this.a : this.read(address)) & 0xFF
-        const result: number = (data >> 1) & 0xFF
-
-        this.setFlag(Flags.C, (data & 0x80) === 0x01) // might need a check
-        this.setFlag(Flags.N, (result & 0x80) === 0x01)
-        this.setFlag(Flags.Z, (result & 0xFF) === 0x00)
-
-        if (implied === true) {
-            this.a = result & 0x00FF
-        } else {
-            this.write(address, result)
-        }
-        return 0
-    }
-
-    private PHA() {
-        this.write(this.stkp, this.a)
-        this.stkp = this.stkp + 1
-    }
-
-    private JMP(address) {
-        this.pc = address
-    }
-
-    private RTS() {
-        this.pc = this.read(this.stkp + 1);
-        this.pc |= this.read(this.stkp + 2) << 8;
-        this.stkp = this.stkp + 3
-        this.pc = this.pc + 1;
-        return 0;
-    }
-
-    // i need to do something about accumulator and the way i fetch data, things are getting out of hands already
     private ROR(address) {
         const accumulator = this.currentInstruction.mode === this.IMP
 
@@ -715,17 +610,89 @@ class mos6502 {
         }
     }
 
-    private STA(address) {
-        this.write(address, this.a)
+    private RTI() {
+        this.status = this.read(this.stkp)
+        this.pc = (this.read(this.stkp + 1) >> 8) + this.read(this.stkp + 2)
+        this.stkp = this.stkp + 3
     }
 
-    private STX(address) {
-        this.write(address, this.x)
+    private RTS() {
+        this.pc = this.read(this.stkp + 1);
+        this.pc |= this.read(this.stkp + 2) << 8;
+        this.stkp = this.stkp + 3
+        this.pc = this.pc + 1;
+        return 0;
     }
 
 
-    private STY(address) {
-        this.write(address, this.y)
+    private SEC() {
+        this.setFlag(Flags.C, true)
+        return 0
+    }
+
+    private SED() {
+        this.setFlag(Flags.D, true)
+        return 0
+    }
+
+    private SEI() {
+        this.setFlag(Flags.I, true)
+        return 0
+    }
+
+    private STA() {
+        this.write(this.addr, this.a)
+        return 0
+    }
+
+    private STX() {
+        this.write(this.addr, this.x)
+        return 0
+    }
+
+    private STY() {
+        this.write(this.addr, this.y)
+        return 0
+    }
+
+    private TAX() {
+        this.x = this.a
+        this.setFlag(Flags.Z, this.x === 0x00)
+        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        return 0
+    }
+
+    private TAY() {
+        this.y = this.a
+        this.setFlag(Flags.Z, this.y === 0x00)
+        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        return 0
+    }
+
+    private TSX() {
+        this.x = this.stkp
+        this.setFlag(Flags.Z, this.x === 0x00)
+        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        return 0
+    }
+
+    private TXA() {
+        this.a = this.x
+        this.setFlag(Flags.Z, this.a === 0x00)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
+    }
+
+    private TXS() {
+        this.stkp = this.x
+        return 0
+    }
+
+    private TYA() {
+        this.a = this.y
+        this.setFlag(Flags.Z, this.a === 0x00)
+        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
     }
 }
 
