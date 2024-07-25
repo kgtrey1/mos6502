@@ -1,9 +1,5 @@
 import Flags from "./types/flags"
-import Instruction from "./types/instruction"
-
-type AddressingMode =
-    'IMP' | 'IMM' | 'ABS' | 'ABX' | 'ABY' | 'IND' | 'INX' | 'INY' | 'REL' | 'ZPI' | 'ZPX' | 'ZPY'
-
+import Instruction, { AddressingModesMap, InstructionsMap } from "./types/instruction"
 
 class mos6502 {
     private a: number = 0x00
@@ -13,7 +9,8 @@ class mos6502 {
     private stkp: number = 0x00
     private status: number = 0x00
 
-    private addressingModes: { [code in AddressingMode]: () => number }
+    private addressingModes: AddressingModesMap
+    private instructionsMap: InstructionsMap
 
     private currentInstruction: Instruction = { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }
     
@@ -22,287 +19,25 @@ class mos6502 {
     // 51 out of 57 instructions
 
     constructor() {
+        const t = this
+
         this.addressingModes = {
-            'IMP': this.IMP, 'IMM': this.IMM, 'ABS': this.ABS, 'ABX': this.ABX, 'ABY': this.ABY, 'IND': this.IND,
-            'INX': this.IX, 'INY': this.IY, 'REL': this.REL, 'ZPI': this.ZP, 'ZPX': this.ZPX, 'ZPY': this.ZPY
+            IMP: t.IMP, IMM: t.IMM, ABS: t.ABS, ABX: t.ABX, ABY: t.ABY, IND: t.IND,
+            INX: t.IX , INY: t.IY , REL: t.REL, ZPI: t.ZP , ZPX: t.ZPX, ZPY: t.ZPY
+        }
+        this.instructionsMap = {
+            ADC: t.ADC, AND: t.AND, ASL: t.ASL, BCC: t.BCC, BCS: t.BCS, BEQ: t.BEQ, 
+            BIT: t.BIT, BMI: t.BMI, BNE: t.BNE, BPL: t.BPL, BRK: t.BRK, BVC: t.BVC,
+            BVS: t.BVS, CLC: t.CLC, CLD: t.CLD, CLI: t.CLI, CLV: t.CLV, CMP: t.CMP,
+            CPX: t.CPX, CPY: t.CPY, DEC: t.DEC, DEX: t.DEX, DEY: t.DEY, EOR: t.EOR,
+            INC: t.INC, INX: t.INX, INY: t.INY, JMP: t.JMP, JSR: t.JSR, LDA: t.LDA,
+            LDX: t.LDX, LDY: t.LDY, LSR: t.LSR, NOP: t.NOP, ORA: t.ORA, PHA: t.PHA,
+            PHP: t.PHP, PLA: t.PLA, PLP: t.PLP, ROL: t.ROL, ROR: t.ROR, RTI: t.RTI,
+            RTS: t.RTS, SBC: t.SBC, SEC: t.SEC, SED: t.SED, SEI: t.SEI, STA: t.STA,
+            STX: t.STX, STY: t.STY, TAX: t.TAX, TAY: t.TAY, TSX: t.TSX, TXA: t.TXA,
+            TXS: t.TXS, TYA: t.TYA,
         }
     }
-
-
-    // Illegal instruction will have their special function, I don't think ill implement them so it might be NOPd
-    private instructionMatrix: Array<Instruction> = [
-            // Row 0
-            { name: 'BRK', mode: this.IMP, op: this.BRK, cycles: 7 }, // check
-            { name: 'ORA', mode: this.IX, op: this.ORA, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'ORA', mode: this.ZP, op: this.ORA, cycles: 3 }, //check
-            { name: 'ASL', mode: this.ZP, op: this.ASL, cycles: 5 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'PHP', mode: this.IMP, op: this.PHP, cycles: 3 }, // check
-            { name: 'ORA', mode: this.IMM, op: this.ORA, cycles: 2 }, // check
-            { name: 'ASL', mode: this.IMP, op: this.ASL, cycles: 2 }, // check - this is implied even if acc, no need to fetch data
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'ORA', mode: this.ABS, op: this.ORA, cycles: 4 }, // check
-            { name: 'ASL', mode: this.ABS, op: this.ASL, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-              // Row 1
-            { name: 'BPL', mode: this.REL, op: this.BPL, cycles: 2 }, // check
-            { name: 'ORA', mode: this.IY, op: this.ORA, cycles: 5 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'ORA', mode: this.ZPX, op: this.ORA, cycles: 4 }, // check
-            { name: 'ASL', mode: this.ZPX, op: this.ASL, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'CLC', mode: this.IMP, op: this.CLC, cycles: 2 }, // check
-            { name: 'ORA', mode: this.ABY, op: this.ORA, cycles: 4 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'ORA', mode: this.ABX, op: this.ORA, cycles: 4 }, // check
-            { name: 'ASL', mode: this.ABX, op: this.ASL, cycles: 7 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row 2
-            { name: 'JSR', mode: this.ABS, op: this.JSR, cycles: 6 }, // check
-            { name: 'AND', mode: this.IX, op: this.AND, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'BIT', mode: this.ZP, op: this.BIT, cycles: 3 }, // check
-            { name: 'AND', mode: this.ZP, op: this.AND, cycles: 3 }, // check
-            { name: 'ROL', mode: this.ZP, op: this.ROL, cycles: 5 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'PLP', mode: this.IMP, op: this.PLP, cycles: 4 }, // check
-            { name: 'AND', mode: this.IMM, op: this.AND, cycles: 2 }, // check
-            { name: 'ROL', mode: this.IMP, op: this.ROL, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'BIT', mode: this.ABS, op: this.BIT, cycles: 4 }, // check
-            { name: 'AND', mode: this.ABS, op: this.AND, cycles: 4 }, // check
-            { name: 'ROL', mode: this.ABS, op: this.ROL, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row 3
-            { name: 'BMI', mode: this.REL, op: this.BMI, cycles: 2 }, // check
-            { name: 'AND', mode: this.IY, op: this.AND, cycles: 5 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'AND', mode: this.ZPX, op: this.AND, cycles: 4 }, // check
-            { name: 'ROL', mode: this.ZPX, op: this.ROL, cycles: 6 },  // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'SEC', mode: this.IMP, op: this.SEC, cycles: 2 }, // check
-            { name: 'AND', mode: this.ABY, op: this.AND, cycles: 4 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'AND', mode: this.ABX, op: this.AND, cycles: 4 }, // check
-            { name: 'ROL', mode: this.ABX, op: this.ROL, cycles: 7 }, // check
-            // Row 4
-            { name: 'RTI', mode: this.IMP, op: this.RTI, cycles: 6 }, // check
-            { name: 'EOR', mode: this.IX, op: this.EOR, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'EOR', mode: this.ZP, op: this.EOR, cycles: 3 }, //check
-            { name: 'LSR', mode: this.ZP, op: this.LSR, cycles: 5 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'PHA', mode: this.IMP, op: this.PHA, cycles: 3 }, // check
-            { name: 'EOR', mode: this.IMM, op: this.EOR, cycles: 2 }, // check
-            { name: 'LSR', mode: this.IMP, op: this.LSR, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'JMP', mode: this.ABS, op: this.JMP, cycles: 3 }, // check
-            { name: 'EOR', mode: this.ABS, op: this.EOR, cycles: 4 }, // check
-            { name: 'LSR', mode: this.ABS, op: this.LSR, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row 5
-            { name: 'BVC', mode: this.REL, op: this.BVC, cycles: 2 }, // check
-            { name: 'EOR', mode: this.IY, op: this.EOR, cycles: 5 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'EOR', mode: this.ZPX, op: this.EOR, cycles: 4 }, // check
-            { name: 'LSR', mode: this.ZPX, op: this.LSR, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'CLI', mode: this.IMP, op: this.CLI, cycles: 2 }, // check
-            { name: 'EOR', mode: this.ABY, op: this.EOR, cycles: 4 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'EOR', mode: this.ABX, op: this.EOR, cycles: 4 }, // check
-            { name: 'LSR', mode: this.ABX, op: this.LSR, cycles: 7 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row 6
-            { name: 'RTS', mode: this.IMP, op: this.RTS, cycles: 6 }, // check
-            { name: 'ADC', mode: this.IX, op: this.ABS, cycles: 6 }, // later cuz hard to understand
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'ADC', mode: this.ZP, op: this.ABS, cycles: 3 }, // later cuz hard to understand
-            { name: 'ROR', mode: this.ZP, op: this.ROR, cycles: 5 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'PLA', mode: this.IMP, op: this.PLA, cycles: 4 }, // check 
-            { name: 'ADC', mode: this.IMM, op: this.ABS, cycles: 2 },  // later cuz hard to understand
-            { name: 'ROR', mode: this.IMP, op: this.ROR, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'JMP', mode: this.IND, op: this.JMP, cycles: 5 }, // check
-            { name: 'ADC', mode: this.ABS, op: this.ABS, cycles: 4 }, // later cuz hard to understand
-            { name: 'ROR', mode: this.ABS, op: this.ROR, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row 7
-            { name: 'BVS', mode: this.REL, op: this.BVS, cycles: 2 }, // check
-            { name: 'ADC', mode: this.IY, op: this.ABS, cycles: 5 }, // later cuz hard to understand
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'ADC', mode: this.ZPX, op: this.ABS, cycles: 4 }, // later cuz hard to understand
-            { name: 'ROR', mode: this.ZPX, op: this.ROR, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'SEI', mode: this.IMP, op: this.SEI, cycles: 2 }, // check
-            { name: 'ADC', mode: this.ABY, op: this.ABS, cycles: 4 }, // later cuz hard to understand
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'ADC', mode: this.ABX, op: this.ABS, cycles: 4 }, // later cuz hard to understand
-            { name: 'ROR', mode: this.ABX, op: this.ROR, cycles: 7 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row 8
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'STA', mode: this.IX, op: this.STA, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'STY', mode: this.ZP, op: this.STY, cycles: 3 }, // check
-            { name: 'STA', mode: this.ZP, op: this.STA, cycles: 3 }, // check
-            { name: 'STX', mode: this.ZP, op: this.STX, cycles: 3 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'DEY', mode: this.IMP, op: this.DEY, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'TXA', mode: this.IMP, op: this.TXA, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'STY', mode: this.ABS, op: this.STY, cycles: 4 }, // check
-            { name: 'STA', mode: this.ABS, op: this.STA, cycles: 4 }, // check
-            { name: 'STX', mode: this.ABS, op: this.STX, cycles: 4 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row 9
-            { name: 'BCC', mode: this.REL, op: this.BCC, cycles: 2 }, // check
-            { name: 'STA', mode: this.IY, op: this.STA, cycles: 6 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'STY', mode: this.ZPX, op: this.STY, cycles: 4 }, // check
-            { name: 'STA', mode: this.ZPX, op: this.STA, cycles: 4 }, // check
-            { name: 'STX', mode: this.ZPY, op: this.STX, cycles: 4 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'TYA', mode: this.IMP, op: this.TYA, cycles: 2 }, // check
-            { name: 'STA', mode: this.ABY, op: this.STA, cycles: 5 }, // check
-            { name: 'TXS', mode: this.IMP, op: this.TXS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'STA', mode: this.ABX, op: this.STA, cycles: 5 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row A
-            { name: 'LDY', mode: this.IMM, op: this.LDY, cycles: 2 }, // check
-            { name: 'LDA', mode: this.IX, op: this.LDA, cycles: 6 }, // check
-            { name: 'LDX', mode: this.IMM, op: this.LDX, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'LDY', mode: this.ZP, op: this.LDY, cycles: 3 }, //check
-            { name: 'LDA', mode: this.ZP, op: this.LDA, cycles: 3 }, // check
-            { name: 'LDX', mode: this.ZP, op: this.LDX, cycles: 3 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'TAY', mode: this.IMP, op: this.TAY, cycles: 2 }, // check
-            { name: 'LDA', mode: this.IMM, op: this.LDA, cycles: 2 }, // check
-            { name: 'TAX', mode: this.IMP, op: this.TAX, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'LDY', mode: this.ABS, op: this.LDY, cycles: 4 }, // check
-            { name: 'LDA', mode: this.ABS, op: this.LDA, cycles: 4 }, // check
-            { name: 'LDX', mode: this.ABS, op: this.LDX, cycles: 4 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row B
-            { name: 'BCS', mode: this.REL, op: this.BCS, cycles: 2 }, // check
-            { name: 'LDA', mode: this.IY, op: this.LDA, cycles: 5 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'LDY', mode: this.ZPX, op: this.LDY, cycles: 4 }, // check
-            { name: 'LDA', mode: this.ZPX, op: this.LDA, cycles: 4 }, // check
-            { name: 'LDX', mode: this.ZPY, op: this.LDX, cycles: 4 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'CLV', mode: this.IMP, op: this.CLV, cycles: 2 }, // check
-            { name: 'LDA', mode: this.ABY, op: this.LDA, cycles: 4 }, // check
-            { name: 'TSX', mode: this.IMP, op: this.TSX, cycles: 2 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            { name: 'LDY', mode: this.ABX, op: this.LDY, cycles: 4 }, // check
-            { name: 'LDA', mode: this.ABX, op: this.LDA, cycles: 4 }, // check
-            { name: 'LDX', mode: this.ABY, op: this.LDX, cycles: 4 }, // check
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 }, // check
-            // Row C
-            { name: 'CPY', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'CMP', mode: this.IX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CPY', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'CMP', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'DEC', mode: this.ZP, op: this.ABS, cycles: 5 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'INY', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CMP', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'DEX', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CPY', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'CMP', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'DEC', mode: this.ABS, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            // Row D
-            { name: 'BNE', mode: this.REL, op: this.BNE, cycles: 2 },
-            { name: 'CMP', mode: this.IY, op: this.ABS, cycles: 5 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CMP', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'DEC', mode: this.ZPX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CLD', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CMP', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CMP', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
-            { name: 'DEC', mode: this.ABX, op: this.ABS, cycles: 7 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            // Row E
-            { name: 'CPX', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'SBC', mode: this.IX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CPX', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'SBC', mode: this.ZP, op: this.ABS, cycles: 3 },
-            { name: 'INC', mode: this.ZP, op: this.ABS, cycles: 5 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'INX', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'SBC', mode: this.IMM, op: this.ABS, cycles: 2 },
-            { name: 'NOP', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'CPX', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'SBC', mode: this.ABS, op: this.ABS, cycles: 4 },
-            { name: 'INC', mode: this.ABS, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            // Row F
-            { name: 'BEQ', mode: this.REL, op: this.BEQ, cycles: 2},
-            { name: 'SBC', mode: this.IY, op: this.ABS, cycles: 5 },// *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'SBC', mode: this.ZPX, op: this.ABS, cycles: 4 },
-            { name: 'INC', mode: this.ZPX, op: this.ABS, cycles: 6 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'SED', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'SBC', mode: this.ABY, op: this.ABS, cycles: 4 }, // *
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-            { name: 'SBC', mode: this.ABX, op: this.ABS, cycles: 4 }, // *
-            { name: 'INC', mode: this.ABX, op: this.ABS, cycles: 7 },
-            { name: '???', mode: this.IMP, op: this.ABS, cycles: 2 },
-        ]
 
     public simulate() {
         const opcode = this.read(this.pc) & 0xFF
