@@ -5,17 +5,14 @@ class mos6502 {
     private a: number = 0x00
     private x: number = 0x00
     private y: number = 0x00
-    private pc: number = 0x00 // 2 bytes, contains the next address of the program  
+    private pc: number = 0x00
     private stkp: number = 0x00
     private status: number = 0x00
-
     private addressingModes: AddressingModesMap
     private instructionsMap: InstructionsMap
-
-
     private addr: number = 0x00
-
     private currentInstruction: Test = { instruction: '???', addressing: 'IMP', cycles: 2 }
+    private cycle: number = 0
 
     constructor() {
         const t = this
@@ -38,12 +35,29 @@ class mos6502 {
         }
     }
 
-    public simulate() {
-        this.currentInstruction = decode(this.read(this.pc) & 0xFF)
+    public getState() {
+        return {
+            instruction: this.currentInstruction,
+            a: this.a,
+            x: this.x,
+            y: this.y,
+            pc: this.pc,
+            stkp: this.stkp,
+            status: this.status,
+        }
+    }
 
-        let cycles = this.currentInstruction.cycles
-        cycles = cycles + this.addressingModes[this.currentInstruction.addressing]()
-        cycles = cycles + this.instructionsMap[this.currentInstruction.instruction]()
+    public emulate(): number {
+        if (this.cycle === 0) {
+            this.pc = this.pc + 1
+            this.currentInstruction = decode(this.read(this.pc) & 0xFF)
+
+            this.cycle = this.currentInstruction.cycles
+            this.cycle = this.cycle + this.addressingModes[this.currentInstruction.addressing]()
+            this.cycle = this.cycle + this.instructionsMap[this.currentInstruction.instruction]()
+        }
+        this.cycle = this.cycle - 1
+        return this.cycle
     }
 
     public getFlag (flag: Flags) {
