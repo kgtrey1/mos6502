@@ -13,8 +13,10 @@ class mos6502 {
     private addr: number = 0x00
     private currentInstruction: Test = { instruction: '???', addressing: 'IMP', cycles: 2 }
     private cycle: number = 0
+    private read: (address: number) => number
+    private write: (address: number, value: number) => void
 
-    constructor() {
+    constructor(read: (address: number) => number, write: (address: number, value: number) => void) {
         const t = this
 
         this.addressingModes = {
@@ -33,6 +35,8 @@ class mos6502 {
             STX: t.STX, STY: t.STY, TAX: t.TAX, TAY: t.TAY, TSX: t.TSX, TXA: t.TXA,
             TXS: t.TXS, TYA: t.TYA, '???': t.ILL,
         }
+        this.read = read
+        this.write = write
     }
 
     public getState() {
@@ -71,12 +75,6 @@ class mos6502 {
 
         this.status = (value) ? this.status | mask : this.status & ~mask
         return
-    }
-
-    private write(addr: number, value: number) {}
-
-    private read(addr: number): number {
-        return 0
     }
 
 
