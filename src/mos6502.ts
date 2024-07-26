@@ -17,26 +17,28 @@ class mos6502 {
     private write: (address: number, value: number) => void
 
     constructor(read: (address: number) => number, write: (address: number, value: number) => void) {
-        const t = this
 
         this.addressingModes = {
-            IMP: t.IMP, IMM: t.IMM, ABS: t.ABS, ABX: t.ABX, ABY: t.ABY, IND: t.IND,
-            INX: t.IX , INY: t.IY , REL: t.REL, ZPI: t.ZP , ZPX: t.ZPX, ZPY: t.ZPY
+            IMP: this.IMP, IMM: this.IMM, ABS: this.ABS, ABX: this.ABX, ABY: this.ABY, IND: this.IND,
+            INX: this.IX , INY: this.IY , REL: this.REL, ZPI: this.ZP , ZPX: this.ZPX, ZPY: this.ZPY
         }
         this.instructionsMap = {
-            ADC: t.ADC, AND: t.AND, ASL: t.ASL, BCC: t.BCC, BCS: t.BCS, BEQ: t.BEQ, 
-            BIT: t.BIT, BMI: t.BMI, BNE: t.BNE, BPL: t.BPL, BRK: t.BRK, BVC: t.BVC,
-            BVS: t.BVS, CLC: t.CLC, CLD: t.CLD, CLI: t.CLI, CLV: t.CLV, CMP: t.CMP,
-            CPX: t.CPX, CPY: t.CPY, DEC: t.DEC, DEX: t.DEX, DEY: t.DEY, EOR: t.EOR,
-            INC: t.INC, INX: t.INX, INY: t.INY, JMP: t.JMP, JSR: t.JSR, LDA: t.LDA,
-            LDX: t.LDX, LDY: t.LDY, LSR: t.LSR, NOP: t.NOP, ORA: t.ORA, PHA: t.PHA,
-            PHP: t.PHP, PLA: t.PLA, PLP: t.PLP, ROL: t.ROL, ROR: t.ROR, RTI: t.RTI,
-            RTS: t.RTS, SBC: t.SBC, SEC: t.SEC, SED: t.SED, SEI: t.SEI, STA: t.STA,
-            STX: t.STX, STY: t.STY, TAX: t.TAX, TAY: t.TAY, TSX: t.TSX, TXA: t.TXA,
-            TXS: t.TXS, TYA: t.TYA, '???': t.ILL,
+            ADC: this.ADC, AND: this.AND, ASL: this.ASL, BCC: this.BCC, BCS: this.BCS, BEQ: this.BEQ, 
+            BIT: this.BIT, BMI: this.BMI, BNE: this.BNE, BPL: this.BPL, BRK: this.BRK, BVC: this.BVC,
+            BVS: this.BVS, CLC: this.CLC, CLD: this.CLD, CLI: this.CLI, CLV: this.CLV, CMP: this.CMP,
+            CPX: this.CPX, CPY: this.CPY, DEC: this.DEC, DEX: this.DEX, DEY: this.DEY, EOR: this.EOR,
+            INC: this.INC, INX: this.INX, INY: this.INY, JMP: this.JMP, JSR: this.JSR, LDA: this.LDA,
+            LDX: this.LDX, LDY: this.LDY, LSR: this.LSR, NOP: this.NOP, ORA: this.ORA, PHA: this.PHA,
+            PHP: this.PHP, PLA: this.PLA, PLP: this.PLP, ROL: this.ROL, ROR: this.ROR, RTI: this.RTI,
+            RTS: this.RTS, SBC: this.SBC, SEC: this.SEC, SED: this.SED, SEI: this.SEI, STA: this.STA,
+            STX: this.STX, STY: this.STY, TAX: this.TAX, TAY: this.TAY, TSX: this.TSX, TXA: this.TXA,
+            TXS: this.TXS, TYA: this.TYA, '???': this.ILL,
         }
         this.read = read
         this.write = write
+
+        this.reset()
+        this.cycle = 0
     }
 
     public getState() {
@@ -51,11 +53,10 @@ class mos6502 {
         }
     }
 
-    public emulate(): number {
+    public emulate= ()=> {
         if (this.cycle === 0) {
-            this.pc = this.pc + 1
             this.currentInstruction = decode(this.read(this.pc) & 0xFF)
-
+            this.pc = this.pc + 1
             this.cycle = this.currentInstruction.cycles
             this.cycle = this.cycle + this.addressingModes[this.currentInstruction.addressing]()
             this.cycle = this.cycle + this.instructionsMap[this.currentInstruction.instruction]()
@@ -64,17 +65,39 @@ class mos6502 {
         return this.cycle
     }
 
-    public getFlag (flag: Flags) {
-      const mask = 1 << flag;
+    public getFlag = (flag: Flags) => {
+      const mask = 1 << flag & 0xFF;
 
-      return (this.status & mask) !== 0 ? 1 : 0
+      const res =  (this.status & mask) !== 0 ? 1 : 0
+      return res
   }
 
-    public setFlag(flag: Flags, value: boolean) {
+    public setFlag = (flag: Flags, value: boolean) => {
         const mask = (1 << flag) & 0xFF;
 
-        this.status = (value) ? this.status | mask : this.status & ~mask
+        console.log('call setflag: ' + flag + ' value: ' + value)
+        if (value) {
+            this.status |= mask;
+        } else {
+            this.status &= ~mask;
+        }
         return
+    }
+
+    public reset() {
+	    const lo = this.read(0xFFFC + 0)
+	    const hi = this.read(0xFFFC + 1)
+
+	    this.pc = (hi << 8) | lo
+	    this.a = 0
+	    this.x = 0
+	    this.y = 0
+	    this.stkp = 0xFD
+	    this.status = 0x00
+        this.setFlag(Flags.B, true)
+        this.setFlag(Flags.I, true)
+        this.setFlag(Flags.Z, true)
+	    this.cycle = 8
     }
 
 
@@ -87,7 +110,7 @@ class mos6502 {
      * No address operand, we do nothing
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private IMP(): number {
+    private IMP = (): number => {
         return 0
     }
 
@@ -97,9 +120,9 @@ class mos6502 {
      * Use the next byte as a value
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private IMM(): number {
-        this.pc = (this.pc + 1) & 0xFFFF
+    private IMM = (): number => {
         this.addr = this.pc
+        this.pc = (this.pc + 1) & 0xFFFF
         return 0
     }
 
@@ -109,7 +132,7 @@ class mos6502 {
      * The address of the value that the instruction will use is located in the next to bytes.
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private ABS(): number {
+    private ABS = (): number => {
         const low = this.read(this.pc)
         const high = this.read((this.pc + 1) & 0xFFFF)
 
@@ -124,7 +147,7 @@ class mos6502 {
      * The address of the value that the instruction will use is located in the next to bytes.
      * @returns {number} 1 if a page is crossed, else 0.
      */
-    private ABX(): number {
+    private ABX = (): number => {
         const low = this.read(this.pc)
         const high = this.read((this.pc + 1) & 0xFFFF)
 
@@ -139,7 +162,7 @@ class mos6502 {
      * The address of the value that the instruction will use is located in the next to bytes.
      * @returns {number} 1 if a page is crossed, else 0.
      */
-    private ABY(): number {
+    private ABY = (): number => {
         const low = this.read(this.pc)
         const high = this.read((this.pc + 1) & 0xFFFF)
 
@@ -155,7 +178,7 @@ class mos6502 {
      * at the address that we get after reading the next two bytes.
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private IND(): number {
+    private IND = (): number => {
         const low = this.read(this.pc)
         const high = this.read((this.pc + 1) & 0xFFFF)
         const address = (high << 8) | low;
@@ -171,7 +194,7 @@ class mos6502 {
      * Indirect with an offset equal to X.
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private IX(): number {
+    private IX = (): number => {
         const loc = this.read(this.pc);
 
         this.pc = (this.pc + 1) & 0xFFFF
@@ -185,7 +208,7 @@ class mos6502 {
      * Indirect with an offset equal to Y.
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private IY(): number {
+    private IY = (): number => {
         const loc = this.read(this.pc);
 
         this.pc = (this.pc + 1) & 0xFFFF
@@ -199,7 +222,7 @@ class mos6502 {
      * Used by branching instruction. A signed one byte offset is used to indicate the jump location.
      * @returns 
      */
-    private REL(): number {
+    private REL = (): number => {
         this.addr = this.read(this.pc) & 0xFF
         this.pc = this.pc + 1
 
@@ -215,7 +238,7 @@ class mos6502 {
      * We assume that the value is located on page 0, at the offset indicated by the next byte.
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private ZP(): number {
+    private ZP = (): number => {
         const low = this.read(this.pc)
 
         this.addr = low & 0x00FF
@@ -229,7 +252,7 @@ class mos6502 {
      * We assume that the value is located on page 0, at the offset indicated by the next + x byte.
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private ZPX(): number {
+    private ZPX = (): number => {
         const low = this.read((this.pc + this.x) & 0xFFFF)
 
         this.addr = low & 0x00FF
@@ -243,7 +266,7 @@ class mos6502 {
      * We assume that the value is located on page 0, at the offset indicated by the next + y byte.
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
-    private ZPY(): number {
+    private ZPY = (): number => {
         const low = this.read((this.pc + this.y) & 0xFFFF)
 
         this.addr = low & 0x00FF
@@ -258,7 +281,7 @@ class mos6502 {
      */
 
 
-    private ADC() {
+    private ADC = (): number => {
         const m = this.read(this.addr)
         const result = this.a + m + this.getFlag(Flags.C);
 
@@ -270,7 +293,7 @@ class mos6502 {
         return 0
     }
 
-    private AND() {
+    private AND = (): number => {
         const m = this.read(this.addr)
 
         this.a = this.a & m
@@ -279,7 +302,7 @@ class mos6502 {
         return 0
     }
 
-    private ASL() {
+    private ASL = (): number => {
         const implied: boolean = (this.currentInstruction.addressing === 'IMP')
         const data: number = (implied ? this.a : this.read(this.addr))
         const result: number = (data << 1) & 0xFFFF
@@ -296,7 +319,7 @@ class mos6502 {
         return 0
     }
 
-    private BCC() {
+    private BCC = (): number => {
         if (this.getFlag(Flags.C) === 1) {
             return 0
         }
@@ -306,7 +329,7 @@ class mos6502 {
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    private BCS() {
+    private BCS = (): number => {
         if (this.getFlag(Flags.C) === 0) {
             return 0
         }
@@ -316,7 +339,7 @@ class mos6502 {
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    private BEQ() {
+    private BEQ = (): number => {
         if (this.getFlag(Flags.Z) === 0) {
             return 0
         }
@@ -326,7 +349,7 @@ class mos6502 {
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    private BIT() {
+    private BIT = (): number => {
         const m = this.read(this.addr)
         const result = this.a & m
 
@@ -336,7 +359,7 @@ class mos6502 {
         return 0
     }
 
-    private BMI() {
+    private BMI = (): number => {
         if (this.getFlag(Flags.N) === 0) {
             return 0
         }
@@ -346,7 +369,7 @@ class mos6502 {
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    private BNE() {
+    private BNE = (): number => {
         if (this.getFlag(Flags.Z) === 1) {
             return 0
         }
@@ -356,7 +379,7 @@ class mos6502 {
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    private BPL() {
+    private BPL = (): number => {
         if (this.getFlag(Flags.N) === 1) {
             return 0
         }
@@ -366,21 +389,21 @@ class mos6502 {
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    private BRK() { //todo: find offset of stack
+    private BRK = (): number => { //todo: find offset of stack
         const low = this.read(0xFFFF)
         const high = this.read(0xFFFE)
 
         this.setFlag(Flags.B, true)
         this.setFlag(Flags.I, true);
-        this.write(this.stkp, (this.pc >> 8) & 0x00FF)
-        this.write(this.stkp - 1, this.pc & 0x00FF)
-        this.write(this.stkp - 2, this.status)
+        this.write(0x100 + this.stkp, (this.pc >> 8) & 0x00FF)
+        this.write(0x100 + this.stkp - 1, this.pc & 0x00FF)
+        this.write(0x100 + this.stkp - 2, this.status)
         this.stkp = this.stkp - 3
         this.pc = ((high << 8) | low) & 0xFFFF 
         return 0
     }
 
-    private BVC() {
+    private BVC = (): number => {
         if (this.getFlag(Flags.V) === 1) {
             return 0
         }
@@ -391,7 +414,7 @@ class mos6502 {
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    private BVS() {
+    private BVS = (): number => {
         if (this.getFlag(Flags.V) === 0) {
             return 0
         }
@@ -401,27 +424,27 @@ class mos6502 {
         return ((this.pc & 0xFF00) !== (oldAddress & 0xFF00)) ? 2 : 1
     }
 
-    private CLC() {
+    private CLC = (): number => {
         this.setFlag(Flags.C, false)
         return 0
     }
 
-    private CLD() {
+    private CLD = (): number => {
         this.setFlag(Flags.D, false)
         return 0
     }
 
-    private CLI() {
+    private CLI = (): number => {
         this.setFlag(Flags.I, false)
         return 0
     }
 
-    private CLV() {
+    private CLV = (): number => {
         this.setFlag(Flags.V, false)
         return 0
     }
 
-    private CMP() {
+    private CMP = (): number => {
         const m = this.read(this.addr)
 
         this.setFlag(Flags.Z, this.a === m)
@@ -430,7 +453,7 @@ class mos6502 {
         return 0
     }
 
-    private CPX() {
+    private CPX = (): number => {
         const m = this.read(this.addr)
 
         this.setFlag(Flags.Z, this.x === m)
@@ -439,7 +462,7 @@ class mos6502 {
         return 0
     }
 
-    private CPY() {
+    private CPY = (): number => {
         const m = this.read(this.addr)
 
         this.setFlag(Flags.Z, this.y === m)
@@ -448,7 +471,7 @@ class mos6502 {
         return 0
     }
 
-    private DEC() {
+    private DEC = (): number => {
         const m = this.read(this.addr)
         const result = (m - 1) & 0x00FF
 
@@ -458,7 +481,7 @@ class mos6502 {
         return 0
     }
 
-    private DEX() {
+    private DEX = (): number => {
         this.x = (this.x - 1) & 0x00FF
 
         this.setFlag(Flags.Z, this.x === 0x00)
@@ -466,7 +489,7 @@ class mos6502 {
         return 0
     }
 
-    private DEY() {
+    private DEY = (): number => {
         this.y = (this.y - 1) & 0x00FF
 
         this.setFlag(Flags.Z, this.y === 0x00)
@@ -474,7 +497,7 @@ class mos6502 {
         return 0
     }
 
-    private EOR() {
+    private EOR = (): number => {
         const m = this.read(this.addr)
 
         this.a = this.a ^ m
@@ -483,7 +506,7 @@ class mos6502 {
         return 0
     }
 
-    private INC() {
+    private INC = (): number => {
         const m = this.read(this.addr)
         const result = (m + 1) & 0xFF
 
@@ -493,7 +516,7 @@ class mos6502 {
         return 0
     }
 
-    private INX() {
+    private INX = (): number => {
         this.x = (this.x + 1) & 0xFF
 
         this.setFlag(Flags.Z, this.x == 0x00)
@@ -501,7 +524,7 @@ class mos6502 {
         return 0
     }
 
-    private INY() {
+    private INY = (): number => {
         this.y = (this.y + 1) & 0xFF
 
         this.setFlag(Flags.Z, this.y == 0x00)
@@ -509,42 +532,42 @@ class mos6502 {
         return 0
     }
 
-    private JMP() {
+    private JMP = (): number => {
         this.pc = this.addr
         return 0
     }
 
-    private JSR() {
-        this.write(this.stkp, ((this.pc - 1) >> 8) & 0x00FF)
-        this.write(this.stkp - 1, (this.pc - 1) & 0x00FF)
+    private JSR = (): number => {
+        this.write(0x100 + this.stkp, ((this.pc - 1) >> 8) & 0x00FF)
+        this.write(0x100 + this.stkp - 1, (this.pc - 1) & 0x00FF)
         this.stkp = this.stkp - 2
         this.pc = this.addr
         return 0
     }
 
-    private LDA() {
+    private LDA = (): number => {
         this.a = this.read(this.addr)
         this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
     }
 
-    private LDX() {
+    private LDX = (): number => {
         this.x = this.read(this.addr)
         this.setFlag(Flags.Z, this.x === 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        this.setFlag(Flags.N, (this.x & 0x80) !== 0)
         return 0
     }
 
-    private LDY() {
+    private LDY = (): number => {
         this.y = this.read(this.addr)
 
         this.setFlag(Flags.Z, this.y === 0x00)
-        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        this.setFlag(Flags.N, (this.y & 0x80) !== 0)
         return 0
     }
 
-    private LSR() {
+    private LSR = (): number => {
         const implied: boolean = (this.currentInstruction.addressing === 'IMP')
         const data: number = (implied ? this.a : this.read(this.addr)) & 0xFF
         const result: number = (data >> 1) & 0xFF
@@ -560,11 +583,11 @@ class mos6502 {
         return 0
     }
 
-    private NOP() {
+    private NOP = (): number => {
         return 0
     }
 
-    private ORA() {
+    private ORA = (): number => {
         const m = this.read(this.addr)
 
         this.a = this.a | m
@@ -574,33 +597,33 @@ class mos6502 {
         return 0
     }
 
-    private PHA() {
-        this.write(this.stkp, this.a)
+    private PHA = (): number => {
+        this.write(0x100 + this.stkp, this.a)
         this.stkp = this.stkp - 1
         return 0
     }
 
-    private PHP() {
-        this.write(this.stkp, this.status)
+    private PHP = (): number => {
+        this.write(0x100 + this.stkp, this.status)
         this.stkp = this.stkp - 1
         return 0
     }
 
-    private PLA() {
+    private PLA = (): number => {
         this.stkp = this.stkp + 1
-        this.a = this.read(this.stkp)
+        this.a = this.read(0x100 + this.stkp)
         this.setFlag(Flags.Z, this.a === 0)
         this.setFlag(Flags.N, (this.a & 0x80) === 1)
         return 0
     }
 
-    private PLP() {
+    private PLP = (): number => {
         this.stkp = this.stkp + 1
-        this.status = this.read(this.stkp)
+        this.status = this.read(0x100 + this.stkp)
         return 0
     }
 
-    private ROL() {
+    private ROL = (): number => {
         const m = this.currentInstruction.addressing === 'IMP' ? this.a : this.read(this.addr)
         const result = m << 1 | this.getFlag(Flags.C)
 
@@ -616,7 +639,7 @@ class mos6502 {
         return 0
     }
 
-    private ROR() {
+    private ROR = (): number => {
         const m = this.currentInstruction.addressing === 'IMP' ? this.a : this.read(this.addr)
         const result = (m >> 1) | (this.getFlag(Flags.C) << 7)
     
@@ -631,27 +654,27 @@ class mos6502 {
         return 0
     }
 
-    private RTI() {
-        const lo = this.read(this.stkp + 1)
-        const hi = this.read(this.stkp + 2)
+    private RTI = (): number => {
+        const lo = this.read(0x100 + this.stkp + 1)
+        const hi = this.read(0x100 + this.stkp + 2)
 
-        this.status = this.read(this.stkp)
+        this.status = this.read(0x100 + this.stkp)
         this.setFlag(Flags.B, true)
         this.pc = (hi << 8) | lo;
         this.stkp = this.stkp + 3
         return 0
     }
 
-    private RTS() {
-        const lo = this.read(this.stkp + 1)
-        const hi = this.read(this.stkp + 2)
+    private RTS = (): number => {
+        const lo = this.read(0x100 + this.stkp + 1)
+        const hi = this.read(0x100 + this.stkp + 2)
 
         this.pc = ((hi << 8) | lo) + 1
         this.stkp = this.stkp + 3
         return 0
     }
 
-    private SBC() {
+    private SBC = (): number => {
         const m = this.read(this.addr)
         const result = this.a - m - (1 - this.getFlag(Flags.C))
     
@@ -663,77 +686,77 @@ class mos6502 {
         return 0
     }
 
-    private SEC() {
+    private SEC = (): number => {
         this.setFlag(Flags.C, true)
         return 0
     }
 
-    private SED() {
+    private SED = (): number => {
         this.setFlag(Flags.D, true)
         return 0
     }
 
-    private SEI() {
+    private SEI = (): number => {
         this.setFlag(Flags.I, true)
         return 0
     }
 
-    private STA() {
+    private STA = (): number => {
         this.write(this.addr, this.a)
         return 0
     }
 
-    private STX() {
+    private STX = (): number => {
         this.write(this.addr, this.x)
         return 0
     }
 
-    private STY() {
+    private STY = (): number => {
         this.write(this.addr, this.y)
         return 0
     }
 
-    private TAX() {
+    private TAX = (): number => {
         this.x = this.a
         this.setFlag(Flags.Z, this.x === 0x00)
         this.setFlag(Flags.N, (this.x & 0x80) === 1)
         return 0
     }
 
-    private TAY() {
+    private TAY = (): number => {
         this.y = this.a
         this.setFlag(Flags.Z, this.y === 0x00)
         this.setFlag(Flags.N, (this.y & 0x80) === 1)
         return 0
     }
 
-    private TSX() {
+    private TSX = (): number => {
         this.x = this.stkp
         this.setFlag(Flags.Z, this.x === 0x00)
         this.setFlag(Flags.N, (this.x & 0x80) === 1)
         return 0
     }
 
-    private TXA() {
+    private TXA = (): number => {
         this.a = this.x
         this.setFlag(Flags.Z, this.a === 0x00)
         this.setFlag(Flags.N, (this.a & 0x80) === 1)
         return 0
     }
 
-    private TXS() {
+    private TXS = (): number => {
         this.stkp = this.x
         return 0
     }
 
-    private TYA() {
+    private TYA = (): number => {
         this.a = this.y
         this.setFlag(Flags.Z, this.a === 0x00)
         this.setFlag(Flags.N, (this.a & 0x80) === 1)
         return 0
     }
 
-    private ILL() {
+    private ILL = (): number => {
         return 0
     }
 }
