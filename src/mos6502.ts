@@ -34,7 +34,7 @@ class mos6502 {
             PHP: t.PHP, PLA: t.PLA, PLP: t.PLP, ROL: t.ROL, ROR: t.ROR, RTI: t.RTI,
             RTS: t.RTS, SBC: t.SBC, SEC: t.SEC, SED: t.SED, SEI: t.SEI, STA: t.STA,
             STX: t.STX, STY: t.STY, TAX: t.TAX, TAY: t.TAY, TSX: t.TSX, TXA: t.TXA,
-            TXS: t.TXS, TYA: t.TYA, '???': t.ABS
+            TXS: t.TXS, TYA: t.TYA, '???': t.ILL,
         }
     }
 
@@ -184,7 +184,7 @@ class mos6502 {
     /**
      * Relative Addressing mode.
      *
-     * Used by branching instruction. A signed one bit offset is used to indicate the jump location.
+     * Used by branching instruction. A signed one byte offset is used to indicate the jump location.
      * @returns 
      */
     private REL(): number {
@@ -577,53 +577,55 @@ class mos6502 {
     }
 
     private ROL() {
-        const accumulator = this.currentInstruction.addressing === 'IMP'
+        const m = this.currentInstruction.addressing === 'IMP' ? this.a : this.read(this.addr)
+        const result = m << 1 | this.getFlag(Flags.C)
 
-        if (accumulator) {
-            this.setFlag(Flags.C, (this.a & 0x80) === 1)
-            this.a = (this.a >> 1)
-            this.setFlag(Flags.N, (this.a & 0x80) === 1)
-        } else {
-            let m = this.read(address)
-
-            this.setFlag(Flags.C, (m & 0x80) === 1)
-            m = (m >> 1) & 0x00FF
-            this.setFlag(Flags.N, (m & 0x80) === 1)
-            this.write(address, m)
+        this.setFlag(Flags.C, (result & 0x0100) != 0) 
+        this.setFlag(Flags.Z, (result & 0x00FF) === 0)
+        this.setFlag(Flags.N, (result & 0x80) !== 0)
+        if (this.currentInstruction.addressing === 'IMP') {
+            this.a = result & 0x00FF
         }
+        else {
+            this.write(this.addr, result & 0x00FF)
+        }
+        return 0
     }
 
-    private ROR(address) {
-        const accumulator = this.currentInstruction.mode === this.IMP
-
-        if (accumulator) {
-            this.setFlag(Flags.C, (this.a & 0x80) === 1)
-            this.a = (this.a << 1)
-            this.setFlag(Flags.N, (this.a & 0x80) === 1)
+    private ROR() {
+        const m = this.currentInstruction.addressing === 'IMP' ? this.a : this.read(this.addr)
+        const result = (m >> 1) | (this.getFlag(Flags.C) << 7)
+    
+        this.setFlag(Flags.C, (m & 0x01) !== 0)
+        this.setFlag(Flags.Z, (result & 0x00FF) === 0)
+        this.setFlag(Flags.N, (result & 0x80) !== 0)    
+        if (this.currentInstruction.addressing === 'IMP') {
+            this.a = result & 0x00FF
         } else {
-            let m = this.read(address)
-
-            this.setFlag(Flags.C, (m & 0x80) === 1)
-            m = (m >> 1) & 0x00FF
-            this.setFlag(Flags.N, (m & 0x80) === 1)
-            this.write(address, m)
+            this.write(this.addr, result & 0x00FF)
         }
+        return 0
     }
 
     private RTI() {
+        const lo = this.read(this.stkp + 1)
+        const hi = this.read(this.stkp + 2)
+
         this.status = this.read(this.stkp)
-        this.pc = (this.read(this.stkp + 1) >> 8) + this.read(this.stkp + 2)
+        this.setFlag(Flags.B, true)
+        this.pc = (hi << 8) | lo;
         this.stkp = this.stkp + 3
+        return 0
     }
 
     private RTS() {
-        this.pc = this.read(this.stkp + 1);
-        this.pc |= this.read(this.stkp + 2) << 8;
-        this.stkp = this.stkp + 3
-        this.pc = this.pc + 1;
-        return 0;
-    }
+        const lo = this.read(this.stkp + 1)
+        const hi = this.read(this.stkp + 2)
 
+        this.pc = ((hi << 8) | lo) + 1
+        this.stkp = this.stkp + 3
+        return 0
+    }
 
     private SEC() {
         this.setFlag(Flags.C, true)
@@ -692,6 +694,10 @@ class mos6502 {
         this.a = this.y
         this.setFlag(Flags.Z, this.a === 0x00)
         this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        return 0
+    }
+
+    private ILL() {
         return 0
     }
 }

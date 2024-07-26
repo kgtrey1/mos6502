@@ -7,9 +7,6 @@ interface Instruction {
 
 export default Instruction
 
-
-
-
 export type Instructions =
     'ADC' | 'AND' | 'ASL' | 'BCC' | 'BCS' | 'BEQ' | 'BIT' | 'BMI' | 'BNE' | 'BPL' | 'BRK' | 'BVC' |
     'BVS' | 'CLC' | 'CLD' | 'CLI' | 'CLV' | 'CMP' | 'CPX' | 'CPY' | 'DEC' | 'DEX' | 'DEY' | 'EOR' |
