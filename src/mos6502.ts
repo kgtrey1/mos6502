@@ -1,6 +1,20 @@
 import Flags from "./types/flags"
 import Instruction, { AddressingModesMap, InstructionsMap, Test, decode } from "./types/instruction"
 
+const hex = (value: number, padding: number = 2): string => {
+    let h = value.toString(16)
+
+    if (h.length < padding) {
+        const length = h.length
+
+        for (let i = 0; i + length < padding; i++) {
+            h = '0' + h
+        }
+    }
+    return h.toUpperCase()
+}
+
+
 class mos6502 {
     private a: number = 0x00
     private x: number = 0x00
@@ -16,7 +30,12 @@ class mos6502 {
     private read: (address: number) => number
     private write: (address: number, value: number) => void
 
-    constructor(read: (address: number) => number, write: (address: number, value: number) => void) {
+    /** Debug Only */
+    private debug: boolean
+    private currentDisassInstr: Array<string> = []
+    private currentRegisterState: string = ''
+
+    constructor(read: (address: number) => number, write: (address: number, value: number) => void, debug: boolean = false) {
 
         this.addressingModes = {
             IMP: this.IMP, IMM: this.IMM, ABS: this.ABS, ABX: this.ABX, ABY: this.ABY, IND: this.IND,
@@ -39,6 +58,7 @@ class mos6502 {
 
         this.reset()
         this.cycle = 0
+        this.debug = debug
     }
 
     public getState() {
@@ -53,16 +73,30 @@ class mos6502 {
         }
     }
 
-    public emulate= ()=> {
+    public emulate= () => {
         if (this.cycle === 0) {
+            if (this.debug) {
+                this.disass(this.pc, this.pc + 16)
+            }
             this.currentInstruction = decode(this.read(this.pc) & 0xFF)
             this.pc = this.pc + 1
             this.cycle = this.currentInstruction.cycles
             this.cycle = this.cycle + this.addressingModes[this.currentInstruction.addressing]()
             this.cycle = this.cycle + this.instructionsMap[this.currentInstruction.instruction]()
+            if (this.debug) {
+                this.dumpRegisters()
+            }
         }
         this.cycle = this.cycle - 1
         return this.cycle
+    }
+
+    public getRegisterDump() {
+        return this.currentRegisterState
+    }
+
+    public getAssembly() {
+        return this.currentDisassInstr
     }
 
     public getFlag = (flag: Flags) => {
@@ -75,7 +109,6 @@ class mos6502 {
     public setFlag = (flag: Flags, value: boolean) => {
         const mask = (1 << flag) & 0xFF;
 
-        console.log('call setflag: ' + flag + ' value: ' + value)
         if (value) {
             this.status |= mask;
         } else {
@@ -92,7 +125,7 @@ class mos6502 {
 	    this.a = 0
 	    this.x = 0
 	    this.y = 0
-	    this.stkp = 0xFD
+	    this.stkp = 0xFF
 	    this.status = 0x00
         this.setFlag(Flags.B, true)
         this.setFlag(Flags.I, true)
@@ -225,6 +258,7 @@ class mos6502 {
     private REL = (): number => {
         this.addr = this.read(this.pc) & 0xFF
         this.pc = this.pc + 1
+
 
         if (this.addr & 0x80) {
             this.addr = this.addr | 0xFF00
@@ -477,7 +511,7 @@ class mos6502 {
 
         this.write(this.addr, result)
         this.setFlag(Flags.Z, result === 0)
-        this.setFlag(Flags.N, (result & 0x80) === 1)
+        this.setFlag(Flags.N, (result & 0x80) !== 0)
         return 0
     }
 
@@ -485,7 +519,7 @@ class mos6502 {
         this.x = (this.x - 1) & 0x00FF
 
         this.setFlag(Flags.Z, this.x === 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        this.setFlag(Flags.N, (this.x & 0x80) !== 0)
         return 0
     }
 
@@ -493,7 +527,7 @@ class mos6502 {
         this.y = (this.y - 1) & 0x00FF
 
         this.setFlag(Flags.Z, this.y === 0x00)
-        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        this.setFlag(Flags.N, (this.y & 0x80) !== 0)
         return 0
     }
 
@@ -719,28 +753,28 @@ class mos6502 {
     private TAX = (): number => {
         this.x = this.a
         this.setFlag(Flags.Z, this.x === 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        this.setFlag(Flags.N, (this.x & 0x80) !== 1)
         return 0
     }
 
     private TAY = (): number => {
         this.y = this.a
         this.setFlag(Flags.Z, this.y === 0x00)
-        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        this.setFlag(Flags.N, (this.y & 0x80) !== 1)
         return 0
     }
 
     private TSX = (): number => {
         this.x = this.stkp
         this.setFlag(Flags.Z, this.x === 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        this.setFlag(Flags.N, (this.x & 0x80) !== 1)
         return 0
     }
 
     private TXA = (): number => {
         this.a = this.x
         this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 1)
         return 0
     }
 
@@ -752,7 +786,7 @@ class mos6502 {
     private TYA = (): number => {
         this.a = this.y
         this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 1)
         return 0
     }
 
