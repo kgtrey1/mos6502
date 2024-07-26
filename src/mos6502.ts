@@ -246,6 +246,18 @@ class mos6502 {
      */
 
 
+    private ADC() {
+        const m = this.read(this.addr)
+        const result = this.a + m + this.getFlag(Flags.C);
+
+	    this.setFlag(Flags.Z, (result & 0x00FF) === 0);
+		this.setFlag(Flags.V, ((this.a ^ m) & (this.a ^ result) & 0x80) !== 0)
+	    this.setFlag(Flags.N, (result & 0x80) === 1);
+        this.setFlag(Flags.C, result > 0xFF);
+	    this.a = result & 0x00FF;
+        return 0
+    }
+
     private AND() {
         const m = this.read(this.addr)
 
@@ -624,6 +636,18 @@ class mos6502 {
 
         this.pc = ((hi << 8) | lo) + 1
         this.stkp = this.stkp + 3
+        return 0
+    }
+
+    private SBC() {
+        const m = this.read(this.addr)
+        const result = this.a - m - (1 - this.getFlag(Flags.C))
+    
+        this.setFlag(Flags.Z, (result & 0x00FF) === 0)
+        this.setFlag(Flags.N, (result & 0x80) !== 0)
+        this.setFlag(Flags.V, (((this.a ^ m) & (this.a ^ result)) & 0x80) !== 0)
+        this.setFlag(Flags.C, result >= 0)   
+        this.a = result & 0xFF
         return 0
     }
 
