@@ -3,20 +3,6 @@ import Flags from "./types/flags"
 import Instruction, { AddressingModesMap, InstructionsMap, Test, decode } from "./types/instruction"
 import RegistersInfo from "./types/register"
 
-const hex = (value: number, padding: number = 2): string => {
-    let h = value.toString(16)
-
-    if (h.length < padding) {
-        const length = h.length
-
-        for (let i = 0; i + length < padding; i++) {
-            h = '0' + h
-        }
-    }
-    return h.toUpperCase()
-}
-
-
 class mos6502 {
     private a: number = 0x00
     private x: number = 0x00
@@ -826,7 +812,7 @@ class mos6502 {
             info.disassembly.addressingMode = op.addressing
             pc++
             if (info.disassembly.addressingMode === 'IMM') {
-                info.instruction.push(this.read(pc & 0xFF))
+                info.instruction.push(this.read(pc))
                 info.disassembly.operand = info.instruction[1]
                 pc++
             } else if (
@@ -835,9 +821,9 @@ class mos6502 {
                 info.disassembly.addressingMode === 'ABY' ||
                 info.disassembly.addressingMode === 'IND'
             ) {
-                info.instruction.push(this.read(pc & 0xFF))
+                info.instruction.push(this.read(pc))
                 pc++
-                info.instruction.push(this.read(pc & 0xFF))
+                info.instruction.push(this.read(pc))
                 pc++
                 info.disassembly.operand = ((info.instruction[2] << 8) | info.instruction[1]) & 0xFFFF
                 // 26E6 6E 03 02  ROR $0203     |00 03 04 FF|100000|6 - ABS
@@ -856,11 +842,8 @@ class mos6502 {
             } else if (info.disassembly.addressingMode === 'REL') {
                 info.instruction.push(this.read(pc))
                 pc++
-                if (info.instruction[1] & 0x80) {
-                    info.disassembly.operand = ((pc + info.instruction[1]) | 0xFF00) & 0xFFFF
-                } else {
-                    info.disassembly.operand = pc + info.instruction[1]
-                }
+                const offset = (info.instruction[1] > 127) ? info.instruction[1] - 256 : info.instruction[1]
+                info.disassembly.operand = pc + offset
                 // 0433 D0 F4     BNE $0429     |00 05 00 FF|000100|3
             }
             disassembly.push(info)
