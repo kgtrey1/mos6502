@@ -106,7 +106,7 @@ class mos6502 {
 	    this.a = 0
 	    this.x = 0
 	    this.y = 0
-	    this.stkp = 0xFD
+	    this.stkp = 0xFF
 	    this.status = 0x00
         this.setFlag(Flags.B, true)
         this.setFlag(Flags.I, true)
