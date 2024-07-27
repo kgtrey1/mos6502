@@ -106,7 +106,7 @@ class mos6502 {
 	    this.a = 0
 	    this.x = 0
 	    this.y = 0
-	    this.stkp = 0xFF
+	    this.stkp = 0xFD
 	    this.status = 0x00
         this.setFlag(Flags.B, true)
         this.setFlag(Flags.I, true)
@@ -536,7 +536,7 @@ class mos6502 {
 
         this.a = this.a ^ m
         this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
     }
 
@@ -638,7 +638,7 @@ class mos6502 {
     }
 
     private PHP = (): number => {
-        this.write(0x100 + this.stkp, this.status)
+        this.write(0x100 + this.stkp, this.status | 0x30)
         this.stkp = this.stkp - 1
         return 0
     }
@@ -647,7 +647,7 @@ class mos6502 {
         this.stkp = this.stkp + 1
         this.a = this.read(0x100 + this.stkp)
         this.setFlag(Flags.Z, this.a === 0)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
     }
 
@@ -753,28 +753,28 @@ class mos6502 {
     private TAX = (): number => {
         this.x = this.a
         this.setFlag(Flags.Z, this.x === 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) !== 1)
+        this.setFlag(Flags.N, (this.x & 0x80) !== 0)
         return 0
     }
 
     private TAY = (): number => {
         this.y = this.a
         this.setFlag(Flags.Z, this.y === 0x00)
-        this.setFlag(Flags.N, (this.y & 0x80) !== 1)
+        this.setFlag(Flags.N, (this.y & 0x80) !== 0)
         return 0
     }
 
     private TSX = (): number => {
         this.x = this.stkp
         this.setFlag(Flags.Z, this.x === 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) !== 1)
+        this.setFlag(Flags.N, (this.x & 0x80) !== 0)
         return 0
     }
 
     private TXA = (): number => {
         this.a = this.x
         this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) !== 1)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
     }
 
@@ -786,7 +786,7 @@ class mos6502 {
     private TYA = (): number => {
         this.a = this.y
         this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) !== 1)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
     }
 
