@@ -1,5 +1,7 @@
+import DebugInfo from "./types/debug"
 import Flags from "./types/flags"
 import Instruction, { AddressingModesMap, InstructionsMap, Test, decode } from "./types/instruction"
+import RegistersInfo from "./types/register"
 
 const hex = (value: number, padding: number = 2): string => {
     let h = value.toString(16)
@@ -32,8 +34,6 @@ class mos6502 {
 
     /** Debug Only */
     private debug: boolean
-    private currentDisassInstr: Array<string> = []
-    private currentRegisterState: string = ''
 
     constructor(read: (address: number) => number, write: (address: number, value: number) => void, debug: boolean = false) {
 
@@ -73,38 +73,33 @@ class mos6502 {
         }
     }
 
-    public emulate= () => {
+    public emulate = () => {
+        let disassembly = null
+
         if (this.cycle === 0) {
-            if (this.debug) {
-                this.disass(this.pc, this.pc + 16)
-            }
+            const pc = this.pc
+
             this.currentInstruction = decode(this.read(this.pc) & 0xFF)
             this.pc = this.pc + 1
             this.cycle = this.currentInstruction.cycles
             this.cycle = this.cycle + this.addressingModes[this.currentInstruction.addressing]()
             this.cycle = this.cycle + this.instructionsMap[this.currentInstruction.instruction]()
             if (this.debug) {
-                this.dumpRegisters()
+                disassembly = this.disass(pc, pc + 16)
             }
         }
         this.cycle = this.cycle - 1
-        return this.cycle
-    }
-
-    public getRegisterDump() {
-        return this.currentRegisterState
-    }
-
-    public getAssembly() {
-        return this.currentDisassInstr
+        return {
+            cycle: this.cycle,
+            disassembly,
+        }
     }
 
     public getFlag = (flag: Flags) => {
       const mask = 1 << flag & 0xFF;
 
-      const res =  (this.status & mask) !== 0 ? 1 : 0
-      return res
-  }
+      return (this.status & mask) !== 0 ? 1 : 0
+    }
 
     public setFlag = (flag: Flags, value: boolean) => {
         const mask = (1 << flag) & 0xFF;
@@ -317,13 +312,32 @@ class mos6502 {
 
     private ADC = (): number => {
         const m = this.read(this.addr)
-        const result = this.a + m + this.getFlag(Flags.C);
 
-	    this.setFlag(Flags.Z, (result & 0x00FF) === 0);
-		this.setFlag(Flags.V, ((this.a ^ m) & (this.a ^ result) & 0x80) !== 0)
-	    this.setFlag(Flags.N, (result & 0x80) === 1);
-        this.setFlag(Flags.C, result > 0xFF);
-	    this.a = result & 0x00FF;
+        if (this.getFlag(Flags.D)) {
+            let lowerNibble = (this.a & 0x0F) + (m & 0x0F) + this.getFlag(Flags.C);
+            let upperNibble = (this.a >> 4) + (m >> 4);
+
+            if (lowerNibble > 9) {
+                lowerNibble -= 10;
+                upperNibble += 1;
+            }
+            if (upperNibble > 9) {
+                upperNibble -= 10;
+                this.setFlag(Flags.C, true)
+            } else {
+                this.setFlag(Flags.C, false)
+            }
+            this.a = ((upperNibble << 4) | (lowerNibble & 0x0F)) & 0xFF;
+        } else {
+            const result = this.a + m + this.getFlag(Flags.C);
+
+            this.setFlag(Flags.V, ((this.a ^ result) & (m ^ result) & 0x80) !== 0)
+            this.setFlag(Flags.C, result > 0xFF);
+            this.a = result & 0x00FF;
+        }
+
+        this.setFlag(Flags.Z, this.a === 0)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
     }
 
@@ -483,7 +497,7 @@ class mos6502 {
 
         this.setFlag(Flags.Z, this.a === m)
         this.setFlag(Flags.C, this.a >= m)
-        this.setFlag(Flags.N, (((this.a - m) & 0xFF) & 0x80) === 1)
+        this.setFlag(Flags.N, (((this.a - m) & 0xFF) & 0x80) !== 0)
         return 0
     }
 
@@ -492,7 +506,7 @@ class mos6502 {
 
         this.setFlag(Flags.Z, this.x === m)
         this.setFlag(Flags.C, this.x >= m)
-        this.setFlag(Flags.N, (((this.x - m) & 0xFF) & 0x80) === 1)
+        this.setFlag(Flags.N, (((this.x - m) & 0xFF) & 0x80) !== 0)
         return 0
     }
 
@@ -501,7 +515,7 @@ class mos6502 {
 
         this.setFlag(Flags.Z, this.y === m)
         this.setFlag(Flags.C, this.y >= m)
-        this.setFlag(Flags.N, (((this.y - m) & 0xFF) & 0x80) === 1)
+        this.setFlag(Flags.N, (((this.y - m) & 0xFF) & 0x80) !== 0)
         return 0
     }
 
@@ -792,6 +806,83 @@ class mos6502 {
 
     private ILL = (): number => {
         return 0
+    }
+
+    private disass(start: number, end: number) {
+        const disassembly: Array<DebugInfo> = []
+        let pc = start
+
+        while (pc <= end) {
+            const info: DebugInfo = {
+                address: pc,
+                instruction: [],
+                disassembly: { operand: 0, addressingMode: 'IMP', instruction: '???' },
+            }
+            const opcode = this.read(pc)
+            const op = decode(opcode)
+
+            info.instruction.push(opcode & 0xFF)
+            info.disassembly.instruction = op.instruction
+            info.disassembly.addressingMode = op.addressing
+            pc++
+            if (info.disassembly.addressingMode === 'IMM') {
+                info.instruction.push(this.read(pc & 0xFF))
+                info.disassembly.operand = info.instruction[1]
+                pc++
+            } else if (
+                info.disassembly.addressingMode === 'ABS' ||
+                info.disassembly.addressingMode === 'ABX' ||
+                info.disassembly.addressingMode === 'ABY' ||
+                info.disassembly.addressingMode === 'IND'
+            ) {
+                info.instruction.push(this.read(pc & 0xFF))
+                pc++
+                info.instruction.push(this.read(pc & 0xFF))
+                pc++
+                info.disassembly.operand = ((info.instruction[2] << 8) | info.instruction[1]) & 0xFFFF
+                // 26E6 6E 03 02  ROR $0203     |00 03 04 FF|100000|6 - ABS
+            } else if (
+                info.disassembly.addressingMode === 'INX' ||
+                info.disassembly.addressingMode === 'INY' ||
+                info.disassembly.addressingMode === 'ZPI' ||
+                info.disassembly.addressingMode === 'ZPX' ||
+                info.disassembly.addressingMode === 'ZPY' // Assuming its the same
+                // 2AE9 85 0C     STA $0C       |81 01 04 FF|111101|3 - ZPI
+                // 2BB7 95 0C     STA $0C,X     |7F 01 04 FF|100000|4 - ZPX
+            ) {
+                info.instruction.push(pc)
+                pc++
+                info.disassembly.operand = info.instruction[1]
+            } else if (info.disassembly.addressingMode === 'REL') {
+                info.instruction.push(this.read(pc))
+                pc++
+                if (info.instruction[1] & 0x80) {
+                    info.disassembly.operand = ((pc + info.instruction[1]) | 0xFF00) & 0xFFFF
+                } else {
+                    info.disassembly.operand = pc + info.instruction[1]
+                }
+                // 0433 D0 F4     BNE $0429     |00 05 00 FF|000100|3
+            }
+            disassembly.push(info)
+        }
+        const registers: RegistersInfo = {
+            a: this.a,
+            x: this.x,
+            y: this.y,
+            stkp: this.stkp,
+            status: {
+                n: this.getFlag(Flags.N),
+                v: this.getFlag(Flags.D),
+                d: this.getFlag(Flags.D),
+                i: this.getFlag(Flags.I),
+                z: this.getFlag(Flags.Z),
+                c: this.getFlag(Flags.C),
+            }
+        }
+        return {
+            disassembly,
+            registers,
+        }
     }
 }
 
