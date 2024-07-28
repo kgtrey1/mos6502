@@ -836,7 +836,7 @@ class mos6502 {
                 // 2AE9 85 0C     STA $0C       |81 01 04 FF|111101|3 - ZPI
                 // 2BB7 95 0C     STA $0C,X     |7F 01 04 FF|100000|4 - ZPX
             ) {
-                info.instruction.push(pc)
+                info.instruction.push(this.read(pc))
                 pc++
                 info.disassembly.operand = info.instruction[1]
             } else if (info.disassembly.addressingMode === 'REL') {
