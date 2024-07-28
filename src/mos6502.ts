@@ -63,6 +63,7 @@ class mos6502 {
         let disassembly = null
 
         if (this.cycle === 0) {
+            this.setFlag(Flags.A, true)
             const pc = this.pc
 
             this.currentInstruction = decode(this.read(this.pc) & 0xFF)
@@ -73,6 +74,7 @@ class mos6502 {
             if (this.debug) {
                 disassembly = this.disass(pc, pc + 16)
             }
+            this.setFlag(Flags.A, true)
         }
         this.cycle = this.cycle - 1
         return {
@@ -88,7 +90,7 @@ class mos6502 {
     }
 
     public setFlag = (flag: Flags, value: boolean) => {
-        const mask = (1 << flag) & 0xFF;
+        const mask = 1 << flag
 
         if (value) {
             this.status |= mask;
@@ -111,6 +113,7 @@ class mos6502 {
         this.setFlag(Flags.B, true)
         this.setFlag(Flags.I, true)
         this.setFlag(Flags.Z, true)
+        this.setFlag(Flags.A, true)
 	    this.cycle = 8
     }
 
@@ -167,7 +170,7 @@ class mos6502 {
 
         this.pc = (this.pc + 2) & 0xFFFF
         this.addr = (((high << 8) | low) + this.x) & 0xFFFF
-        return (this.addr & 0xFF00) === (high << 8) ? 0 : 1
+        return (this.addr & 0xFF00) === ((high << 8) & 0xFF00) ? 0 : 1;
     }
 
     /**
@@ -426,12 +429,19 @@ class mos6502 {
     private BRK = (): number => { //todo: find offset of stack
         const low = this.read(0xFFFE)
         const high = this.read(0xFFFF)
-
         this.setFlag(Flags.B, true)
-        this.setFlag(Flags.I, true);
+
+        this.pc = this.pc + 1
+        console.log('entering brk; ', this.status.toString(16))
+
         this.write(0x100 + this.stkp, (this.pc >> 8) & 0x00FF)
+        console.log('FF: ', (this.pc >> 8).toString(16))
         this.write(0x100 + this.stkp - 1, this.pc & 0x00FF)
+        console.log('FE: ', (this.pc & 0x00FF).toString(16))
         this.write(0x100 + this.stkp - 2, this.status)
+        console.log('Written: ', this.status.toString(16))
+        this.setFlag(Flags.I, true)
+        console.log('Value out of brk: ', this.status.toString(16))
         this.stkp = this.stkp - 3
         this.pc = ((high << 8) | low) & 0xFFFF 
         return 0
@@ -580,7 +590,20 @@ class mos6502 {
     }
 
     private LDA = (): number => {
+        if (this.addr === 0x0102 + this.x) {
+            console.log(this.a.toString(16))
+            console.log(this.read(this.addr).toString(16))
+            console.log(this.addr.toString(16))
+
+            console.log((0x100 + this.stkp).toString(16))
+
+            console.log('stkp')
+            console.log(this.read(0x100 + this.stkp + 3).toString(16))
+        }
         this.a = this.read(this.addr)
+        if (this.addr === 0x0102 + this.x) {
+            console.log(this.a.toString(16))
+        }
         this.setFlag(Flags.Z, this.a === 0x00)
         this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
@@ -638,8 +661,14 @@ class mos6502 {
     }
 
     private PHP = (): number => {
+        if (this.pc - 1 === 0x37AB) {
+            console.log('status:')
+            console.log(this.status.toString(16))
+            console.log('On stack: ', (this.status | 0x30).toString(16))
+        }
         this.write(0x100 + this.stkp, this.status | 0x30)
         this.stkp = this.stkp - 1
+        this.setFlag(Flags.B, false)
         return 0
     }
 
@@ -651,9 +680,16 @@ class mos6502 {
         return 0
     }
 
-    private PLP = (): number => {
+    private PLP = (): number => { // break flag set and unused flag set
         this.stkp = this.stkp + 1
         this.status = this.read(0x100 + this.stkp)
+        this.setFlag(Flags.B, true)
+        this.setFlag(Flags.A, true)
+        if (this.pc - 1 === 0x09CE) {
+            console.log('zebi')
+            console.log(this.status.toString(16))
+            console.log('end')
+        }
         return 0
     }
 
@@ -689,10 +725,10 @@ class mos6502 {
     }
 
     private RTI = (): number => {
-        const lo = this.read(0x100 + this.stkp + 1)
-        const hi = this.read(0x100 + this.stkp + 2)
+        const lo = this.read(0x100 + this.stkp + 2)
+        const hi = this.read(0x100 + this.stkp + 3)
 
-        this.status = this.read(0x100 + this.stkp)
+        this.status = this.read(0x100 + this.stkp + 1)
         this.setFlag(Flags.B, true)
         this.pc = (hi << 8) | lo;
         this.stkp = this.stkp + 3
