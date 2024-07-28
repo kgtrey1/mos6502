@@ -285,11 +285,10 @@ class mos6502 {
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
     private ZPY = (): number => {
-        const low = this.read((this.pc + this.y) & 0xFFFF)
-
-        this.addr = low & 0x00FF
-        this.pc = this.pc + 1
-        return 0
+        const base = this.read(this.pc) & 0x00FF
+        this.addr = (base + this.y) & 0x00FF
+        this.pc = (this.pc + 1) & 0xFFFF
+        return 0;
     }
 
 
