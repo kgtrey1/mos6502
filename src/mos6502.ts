@@ -424,8 +424,8 @@ class mos6502 {
     }
 
     private BRK = (): number => { //todo: find offset of stack
-        const low = this.read(0xFFFF)
-        const high = this.read(0xFFFE)
+        const low = this.read(0xFFFE)
+        const high = this.read(0xFFFF)
 
         this.setFlag(Flags.B, true)
         this.setFlag(Flags.I, true);
@@ -704,7 +704,7 @@ class mos6502 {
         const hi = this.read(0x100 + this.stkp + 2)
 
         this.pc = ((hi << 8) | lo) + 1
-        this.stkp = this.stkp + 3
+        this.stkp = this.stkp + 2
         return 0
     }
 
@@ -855,7 +855,7 @@ class mos6502 {
             stkp: this.stkp,
             status: {
                 n: this.getFlag(Flags.N),
-                v: this.getFlag(Flags.D),
+                v: this.getFlag(Flags.V),
                 d: this.getFlag(Flags.D),
                 i: this.getFlag(Flags.I),
                 z: this.getFlag(Flags.Z),
