@@ -237,7 +237,7 @@ class mos6502 {
         const hi = this.read((loc + this.y + 1) & 0xFF);
 
         this.pc = (this.pc + 1) & 0xFFFF;
-        this.addr = (hi << 8) | lo;    
+        this.addr = (hi << 8) | lo;
         return 0;
     }
 
@@ -267,8 +267,8 @@ class mos6502 {
     private ZP = (): number => {
         const low = this.read(this.pc)
 
-        this.addr = low & 0x00FF
-        this.pc = this.pc + 1
+        this.addr = low & 0xFF
+        this.pc = (this.pc + 1) & 0xFFFF
         return 0
     }
 
@@ -348,16 +348,16 @@ class mos6502 {
     private ASL = (): number => {
         const implied: boolean = (this.currentInstruction.addressing === 'IMP')
         const data: number = (implied ? this.a : this.read(this.addr))
-        const result: number = (data << 1) & 0xFFFF
+        const result: number = (data << 1) & 0x00FF
 
-        this.setFlag(Flags.C, (result & 0xFF00) > 0x00)
-        this.setFlag(Flags.N, (result & 0x80) === 0x01)
-        this.setFlag(Flags.Z, (result & 0xFF) === 0x00)
+        this.setFlag(Flags.C, (data & 0x80) !== 0)
+        this.setFlag(Flags.N, (result & 0x80) !== 0)
+        this.setFlag(Flags.Z, (result & 0xFF) === 0)
 
         if (implied === true) {
-            this.a = result & 0x00FF
+            this.a = result
         } else {
-            this.write(this.addr, result & 0x00FF)
+            this.write(this.addr, result)
         }
         return 0
     }
