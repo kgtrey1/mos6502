@@ -556,7 +556,7 @@ class mos6502 {
 
         this.write(this.addr, result)
         this.setFlag(Flags.Z, result == 0x00)
-        this.setFlag(Flags.N, (result & 0x80) === 1)
+        this.setFlag(Flags.N, (result & 0x80) !== 0)
         return 0
     }
 
@@ -564,7 +564,7 @@ class mos6502 {
         this.x = (this.x + 1) & 0xFF
 
         this.setFlag(Flags.Z, this.x == 0x00)
-        this.setFlag(Flags.N, (this.x & 0x80) === 1)
+        this.setFlag(Flags.N, (this.x & 0x80) !== 0)
         return 0
     }
 
@@ -572,7 +572,7 @@ class mos6502 {
         this.y = (this.y + 1) & 0xFF
 
         this.setFlag(Flags.Z, this.y == 0x00)
-        this.setFlag(Flags.N, (this.y & 0x80) === 1)
+        this.setFlag(Flags.N, (this.y & 0x80) !== 0)
         return 0
     }
 
