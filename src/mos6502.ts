@@ -335,7 +335,7 @@ class mos6502 {
 
         this.a = this.a & m
         this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
     }
 
@@ -650,13 +650,13 @@ class mos6502 {
         this.a = this.a | m
 
         this.setFlag(Flags.Z, this.a === 0x00)
-        this.setFlag(Flags.N, (this.a & 0x80) === 1)
+        this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
     }
 
     private PHA = (): number => {
         this.write(0x100 + this.stkp, this.a)
-        this.stkp = this.stkp - 1
+        this.stkp = this.stkp - 1 & 0xFF
         return 0
     }
 
@@ -667,7 +667,7 @@ class mos6502 {
             console.log('On stack: ', (this.status | 0x30).toString(16))
         }
         this.write(0x100 + this.stkp, this.status | 0x30)
-        this.stkp = this.stkp - 1
+        this.stkp = (this.stkp - 1) & 0xFF
         this.setFlag(Flags.B, false)
         return 0
     }
@@ -681,7 +681,7 @@ class mos6502 {
     }
 
     private PLP = (): number => { // break flag set and unused flag set
-        this.stkp = this.stkp + 1
+        this.stkp = (this.stkp + 1) & 0xFF
         this.status = this.read(0x100 + this.stkp)
         this.setFlag(Flags.B, true)
         this.setFlag(Flags.A, true)
