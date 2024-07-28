@@ -170,6 +170,9 @@ class mos6502 {
 
         this.pc = (this.pc + 2) & 0xFFFF
         this.addr = (((high << 8) | low) + this.x) & 0xFFFF
+        if (this.currentInstruction.instruction === 'STA') {
+            return 0
+        }
         return (this.addr & 0xFF00) === ((high << 8) & 0xFF00) ? 0 : 1;
     }
 
@@ -185,6 +188,9 @@ class mos6502 {
 
         this.pc = (this.pc + 2) & 0xFFFF
         this.addr = (((high << 8) | low) + this.y) & 0xFFFF
+        if (this.currentInstruction.instruction === 'STA') {
+            return 0
+        }
         return (this.addr & 0xFF00) === (high << 8) ? 0 : 1
     }
 
@@ -227,10 +233,12 @@ class mos6502 {
      */
     private IY = (): number => {
         const loc = this.read(this.pc);
+        const lo = this.read((loc + this.y) & 0xFF);
+        const hi = this.read((loc + this.y + 1) & 0xFF);
 
-        this.pc = (this.pc + 1) & 0xFFFF
-        this.addr = (this.read((loc + this.y + 1) & 0xFF) << 8) | this.read(loc + this.y & 0xFF)   
-        return 0
+        this.pc = (this.pc + 1) & 0xFFFF;
+        this.addr = (hi << 8) | lo;    
+        return 0;
     }
 
     /**
@@ -271,11 +279,10 @@ class mos6502 {
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
     private ZPX = (): number => {
-        const low = this.read((this.pc + this.x) & 0xFFFF)
-
-        this.addr = low & 0x00FF
-        this.pc = this.pc + 1
-        return 0
+        const base = this.read(this.pc) & 0x00FF
+        this.addr = (base + this.x) & 0x00FF
+        this.pc = (this.pc + 1) & 0xFFFF
+        return 0;
     }
 
     /**
@@ -291,7 +298,7 @@ class mos6502 {
         return 0;
     }
 
-
+    
     /**
      * Instructions
      * reference: https://www.nesdev.org/obelisk-6502-guide/reference.html
@@ -428,19 +435,13 @@ class mos6502 {
     private BRK = (): number => { //todo: find offset of stack
         const low = this.read(0xFFFE)
         const high = this.read(0xFFFF)
+
         this.setFlag(Flags.B, true)
-
         this.pc = this.pc + 1
-        console.log('entering brk; ', this.status.toString(16))
-
         this.write(0x100 + this.stkp, (this.pc >> 8) & 0x00FF)
-        console.log('FF: ', (this.pc >> 8).toString(16))
         this.write(0x100 + this.stkp - 1, this.pc & 0x00FF)
-        console.log('FE: ', (this.pc & 0x00FF).toString(16))
         this.write(0x100 + this.stkp - 2, this.status)
-        console.log('Written: ', this.status.toString(16))
         this.setFlag(Flags.I, true)
-        console.log('Value out of brk: ', this.status.toString(16))
         this.stkp = this.stkp - 3
         this.pc = ((high << 8) | low) & 0xFFFF 
         return 0
@@ -589,20 +590,7 @@ class mos6502 {
     }
 
     private LDA = (): number => {
-        if (this.addr === 0x0102 + this.x) {
-            console.log(this.a.toString(16))
-            console.log(this.read(this.addr).toString(16))
-            console.log(this.addr.toString(16))
-
-            console.log((0x100 + this.stkp).toString(16))
-
-            console.log('stkp')
-            console.log(this.read(0x100 + this.stkp + 3).toString(16))
-        }
         this.a = this.read(this.addr)
-        if (this.addr === 0x0102 + this.x) {
-            console.log(this.a.toString(16))
-        }
         this.setFlag(Flags.Z, this.a === 0x00)
         this.setFlag(Flags.N, (this.a & 0x80) !== 0)
         return 0
@@ -617,7 +605,6 @@ class mos6502 {
 
     private LDY = (): number => {
         this.y = this.read(this.addr)
-
         this.setFlag(Flags.Z, this.y === 0x00)
         this.setFlag(Flags.N, (this.y & 0x80) !== 0)
         return 0
@@ -660,11 +647,6 @@ class mos6502 {
     }
 
     private PHP = (): number => {
-        if (this.pc - 1 === 0x37AB) {
-            console.log('status:')
-            console.log(this.status.toString(16))
-            console.log('On stack: ', (this.status | 0x30).toString(16))
-        }
         this.write(0x100 + this.stkp, this.status | 0x30)
         this.stkp = (this.stkp - 1) & 0xFF
         this.setFlag(Flags.B, false)
@@ -684,11 +666,6 @@ class mos6502 {
         this.status = this.read(0x100 + this.stkp)
         this.setFlag(Flags.B, true)
         this.setFlag(Flags.A, true)
-        if (this.pc - 1 === 0x09CE) {
-            console.log('zebi')
-            console.log(this.status.toString(16))
-            console.log('end')
-        }
         return 0
     }
 
