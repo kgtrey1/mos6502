@@ -202,13 +202,18 @@ class mos6502 {
      * @returns {number} 0, this addressing mode does not require additionnal clock cycles.
      */
     private IND = (): number => {
-        const low = this.read(this.pc)
-        const high = this.read((this.pc + 1) & 0xFFFF)
+        const low = this.read(this.pc);
+        const high = this.read((this.pc + 1) & 0xFFFF);
         const address = (high << 8) | low;
-
-        this.pc = (this.pc + 2) & 0xFFFF
-        this.addr = this.read(address) | (this.read(address + 1) << 8);        
-        return 0
+    
+        this.pc = (this.pc + 2) & 0xFFFF;
+    
+        // Handle the page boundary bug
+        const indirectLow = this.read(address);
+        const indirectHigh = this.read((address & 0xFF00) | ((address + 1) & 0x00FF));
+    
+        this.addr = (indirectHigh << 8) | indirectLow;
+        return 0;
     }
 
     /**
@@ -233,11 +238,12 @@ class mos6502 {
      */
     private IY = (): number => {
         const loc = this.read(this.pc);
-        const lo = this.read((loc + this.y) & 0xFF);
-        const hi = this.read((loc + this.y + 1) & 0xFF);
-
+        const baseLo = this.read(loc & 0xFF);
+        const baseHi = this.read((loc + 1) & 0xFF);
+        const baseAddr = (baseHi << 8) | baseLo;
+        this.addr = (baseAddr + this.y) & 0xFFFF;
+    
         this.pc = (this.pc + 1) & 0xFFFF;
-        this.addr = (hi << 8) | lo;
         return 0;
     }
 
@@ -397,8 +403,8 @@ class mos6502 {
         const result = this.a & m
 
         this.setFlag(Flags.Z, (result === 0x00))
-        this.setFlag(Flags.V, (m & 0x40) === 1)
-        this.setFlag(Flags.N, (m & 0x80) === 1)
+        this.setFlag(Flags.V, (m & 0x40) !== 0)
+        this.setFlag(Flags.N, (m & 0x80) !== 0)
         return 0
     }
 
@@ -582,8 +588,9 @@ class mos6502 {
     }
 
     private JSR = (): number => {
-        this.write(0x100 + this.stkp, ((this.pc - 1) >> 8) & 0x00FF)
-        this.write(0x100 + this.stkp - 1, (this.pc - 1) & 0x00FF)
+        this.pc = this.pc - 1
+        this.write(0x100 + this.stkp, (this.pc >> 8) & 0x00FF)
+        this.write(0x100 + this.stkp - 1, this.pc & 0x00FF)
         this.stkp = this.stkp - 2
         this.pc = this.addr
         return 0
@@ -615,8 +622,8 @@ class mos6502 {
         const data: number = (implied ? this.a : this.read(this.addr)) & 0xFF
         const result: number = (data >> 1) & 0xFF
 
-        this.setFlag(Flags.C, (data & 0x01) === 1)
-        this.setFlag(Flags.N, (result & 0x80) === 1)
+        this.setFlag(Flags.C, (data & 0x01) !== 0)
+        this.setFlag(Flags.N, false)
         this.setFlag(Flags.Z, result === 0)
         if (implied === true) {
             this.a = result
@@ -649,7 +656,6 @@ class mos6502 {
     private PHP = (): number => {
         this.write(0x100 + this.stkp, this.status | 0x30)
         this.stkp = (this.stkp - 1) & 0xFF
-        this.setFlag(Flags.B, false)
         return 0
     }
 
@@ -664,7 +670,7 @@ class mos6502 {
     private PLP = (): number => { // break flag set and unused flag set
         this.stkp = (this.stkp + 1) & 0xFF
         this.status = this.read(0x100 + this.stkp)
-        this.setFlag(Flags.B, true)
+        this.setFlag(Flags.B, false)
         this.setFlag(Flags.A, true)
         return 0
     }
@@ -700,7 +706,7 @@ class mos6502 {
         return 0
     }
 
-    private RTI = (): number => {
+    private RTI = (): number => { // to check back
         const lo = this.read(0x100 + this.stkp + 2)
         const hi = this.read(0x100 + this.stkp + 3)
 
@@ -716,20 +722,48 @@ class mos6502 {
         const hi = this.read(0x100 + this.stkp + 2)
 
         this.pc = ((hi << 8) | lo) + 1
-        this.stkp = this.stkp + 2
+        this.stkp = (this.stkp + 2) & 0xFF
         return 0
     }
 
     private SBC = (): number => {
-        const m = this.read(this.addr)
-        const result = this.a - m - (1 - this.getFlag(Flags.C))
+        const m = this.read(this.addr);
+        const carry = this.getFlag(Flags.C) ? 1 : 0;
+        const decimalMode = this.getFlag(Flags.D);
+        let result: number;
+        
+        if (decimalMode) {
+            let lowNibble = (this.a & 0x0F) - (m & 0x0F) - (1 - carry);
+            let highNibble = (this.a >> 4) - (m >> 4);
     
-        this.setFlag(Flags.Z, (result & 0x00FF) === 0)
-        this.setFlag(Flags.N, (result & 0x80) !== 0)
-        this.setFlag(Flags.V, (((this.a ^ m) & (this.a ^ result)) & 0x80) !== 0)
-        this.setFlag(Flags.C, result >= 0)   
-        this.a = result & 0xFF
-        return 0
+            if (lowNibble < 0) {
+                lowNibble -= 6;
+                highNibble--;
+            }
+    
+            if (highNibble < 0) {
+                highNibble -= 6;
+            }
+    
+            result = (highNibble << 4) | (lowNibble & 0x0F);
+        } else {
+            result = this.a - m - (1 - carry);
+        }
+    
+        // Set Zero flag (Z)
+        this.setFlag(Flags.Z, (result & 0x00FF) === 0);
+    
+        // Set Negative flag (N)
+        this.setFlag(Flags.N, (result & 0x80) !== 0);
+    
+        // Set Overflow flag (V)
+        this.setFlag(Flags.V, ((this.a ^ result) & (this.a ^ m) & 0x80) !== 0);
+    
+        // Set Carry flag (C)
+        this.setFlag(Flags.C, result >= 0);
+    
+        this.a = result & 0xFF;
+        return 0;
     }
 
     private SEC = (): number => {
