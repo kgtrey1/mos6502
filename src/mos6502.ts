@@ -28,7 +28,8 @@ class mos6502 {
 
         this.addressingModes = {
             IMP: this.IMP, IMM: this.IMM, ABS: this.ABS, ABX: this.ABX, ABY: this.ABY, IND: this.IND,
-            INX: this.IX , INY: this.IY , REL: this.REL, ZPI: this.ZP , ZPX: this.ZPX, ZPY: this.ZPY
+            INX: this.IX , INY: this.IY , REL: this.REL, ZPI: this.ZP , ZPX: this.ZPX, ZPY: this.ZPY,
+            ACC: this.IMP,
         }
         this.instructionsMap = {
             ADC: this.ADC, AND: this.AND, ASL: this.ASL, BCC: this.BCC, BCS: this.BCS, BEQ: this.BEQ, 
@@ -231,9 +232,12 @@ class mos6502 {
         const baseHi = this.read((loc + 1) & 0xFF);
         const baseAddr = (baseHi << 8) | baseLo;
         this.addr = (baseAddr + this.y) & 0xFFFF;
-    
         this.pc = (this.pc + 1) & 0xFFFF;
-        return 0;
+
+        if (this.currentInstruction.instruction === 'STA') {
+            return 0
+        }
+        return (this.addr & 0xFF00) === (baseAddr & 0xFF00) ? 0 : 1
     }
 
     /**
@@ -341,7 +345,7 @@ class mos6502 {
     }
 
     private ASL = (): number => {
-        const implied: boolean = (this.currentInstruction.addressing === 'IMP')
+        const implied: boolean = (this.currentInstruction.addressing === 'ACC')
         const data: number = (implied ? this.a : this.read(this.addr))
         const result: number = (data << 1) & 0x00FF
 
@@ -607,7 +611,7 @@ class mos6502 {
     }
 
     private LSR = (): number => {
-        const implied: boolean = (this.currentInstruction.addressing === 'IMP')
+        const implied: boolean = (this.currentInstruction.addressing === 'ACC')
         const data: number = (implied ? this.a : this.read(this.addr)) & 0xFF
         const result: number = (data >> 1) & 0xFF
 
@@ -665,13 +669,13 @@ class mos6502 {
     }
 
     private ROL = (): number => {
-        const m = this.currentInstruction.addressing === 'IMP' ? this.a : this.read(this.addr)
+        const m = this.currentInstruction.addressing === 'ACC' ? this.a : this.read(this.addr)
         const result = m << 1 | this.getFlag(Flags.C)
 
         this.setFlag(Flags.C, (result & 0x0100) != 0) 
         this.setFlag(Flags.Z, (result & 0x00FF) === 0)
         this.setFlag(Flags.N, (result & 0x80) !== 0)
-        if (this.currentInstruction.addressing === 'IMP') {
+        if (this.currentInstruction.addressing === 'ACC') {
             this.a = result & 0x00FF
         }
         else {
@@ -681,13 +685,13 @@ class mos6502 {
     }
 
     private ROR = (): number => {
-        const m = this.currentInstruction.addressing === 'IMP' ? this.a : this.read(this.addr)
+        const m = this.currentInstruction.addressing === 'ACC' ? this.a : this.read(this.addr)
         const result = (m >> 1) | (this.getFlag(Flags.C) << 7)
     
         this.setFlag(Flags.C, (m & 0x01) !== 0)
         this.setFlag(Flags.Z, (result & 0x00FF) === 0)
         this.setFlag(Flags.N, (result & 0x80) !== 0)    
-        if (this.currentInstruction.addressing === 'IMP') {
+        if (this.currentInstruction.addressing === 'ACC') {
             this.a = result & 0x00FF
         } else {
             this.write(this.addr, result & 0x00FF)
