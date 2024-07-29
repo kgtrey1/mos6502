@@ -1,32 +1,6 @@
-interface Instruction {
-    name: string
-    op: () => void
-    mode: () => void
-    cycles: number
-}
+import { Instruction } from "./instructions"
 
-export default Instruction
-
-export type Instructions =
-    'ADC' | 'AND' | 'ASL' | 'BCC' | 'BCS' | 'BEQ' | 'BIT' | 'BMI' | 'BNE' | 'BPL' | 'BRK' | 'BVC' |
-    'BVS' | 'CLC' | 'CLD' | 'CLI' | 'CLV' | 'CMP' | 'CPX' | 'CPY' | 'DEC' | 'DEX' | 'DEY' | 'EOR' |
-    'INC' | 'INX' | 'INY' | 'JMP' | 'JSR' | 'LDA' | 'LDX' | 'LDY' | 'LSR' | 'NOP' | 'ORA' | 'PHA' |
-    'PHP' | 'PLA' | 'PLP' | 'ROL' | 'ROR' | 'RTI' | 'RTS' | 'SBC' | 'SEC' | 'SED' | 'SEI' | 'STA' |
-    'STX' | 'STY' | 'TAX' | 'TAY' | 'TSX' | 'TXA' | 'TXS' | 'TYA' | '???'
-
-export type AddressingModes =
-    'IMP' | 'IMM' | 'ABS' | 'ABX' | 'ABY' | 'IND' | 'INX' | 'INY' | 'REL' | 'ZPI' | 'ZPX' | 'ZPY'
-
-export interface Test {
-    instruction: Instructions
-    addressing: AddressingModes
-    cycles: number
-}
-
-export type AddressingModesMap = { [code in AddressingModes ] : () => number }
-export type InstructionsMap = { [code in Instructions ] : () => number }
-
-const matrix: ReadonlyMap<number, Test> = new Map<number, Test>([
+const matrix: ReadonlyMap<number, Instruction> = new Map<number, Instruction>([
     [0x00, { instruction: 'BRK', addressing: 'IMP', cycles: 7 }],
     [0x01, { instruction: 'ORA', addressing: 'INX', cycles: 6 }],
     [0x05, { instruction: 'ORA', addressing: 'ZPI', cycles: 3 }],
@@ -180,7 +154,7 @@ const matrix: ReadonlyMap<number, Test> = new Map<number, Test>([
     [0xFE, { instruction: 'INC', addressing: 'ABX', cycles: 7 }],
 ])
 
-export const decode = (opcode: number): Test => {
+const decode = (opcode: number): Instruction => {
     const op = matrix.get(opcode)
 
     if (op === undefined) {
@@ -192,3 +166,5 @@ export const decode = (opcode: number): Test => {
     }
     return op
 }
+
+export default decode

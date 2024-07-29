@@ -1,4 +1,5 @@
-import { AddressingModes, Instructions } from "./instruction"
+import { Instructions } from "../instructions"
+import { AddressingModes } from "../addressing"
 
 interface DebugInfo {
     address: number

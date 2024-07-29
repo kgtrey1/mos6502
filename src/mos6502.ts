@@ -1,7 +1,10 @@
 import DebugInfo from "./types/debug"
 import Flags from "./types/flags"
-import Instruction, { AddressingModesMap, InstructionsMap, Test, decode } from "./types/instruction"
 import RegistersInfo from "./types/register"
+
+import { AddressingModesMap } from "./addressing"
+import { Instruction, InstructionsMap } from "./instructions"
+import decode from "./decoder"
 
 class mos6502 {
     private a: number = 0x00
@@ -13,7 +16,7 @@ class mos6502 {
     private addressingModes: AddressingModesMap
     private instructionsMap: InstructionsMap
     private addr: number = 0x00
-    private currentInstruction: Test = { instruction: '???', addressing: 'IMP', cycles: 2 }
+    private currentInstruction: Instruction = { instruction: '???', addressing: 'IMP', cycles: 2 }
     private cycle: number = 0
     private read: (address: number) => number
     private write: (address: number, value: number) => void
