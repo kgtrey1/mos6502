@@ -6,6 +6,11 @@
   "repository": "git@github.com:kgtrey1/kes.git",
   "author": "Kevin Gouyet <kevin.gouyet@protonmail.com>",
   "license": "MIT",
+  "scripts": {
+    "start": "node dist/src/main.js",
+    "build": "tsc",
+    "test": "jest"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.12",

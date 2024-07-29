@@ -47,20 +47,8 @@ class mos6502 {
         this.debug = debug
     }
 
-    public getState() {
-        return {
-            instruction: this.currentInstruction,
-            a: this.a,
-            x: this.x,
-            y: this.y,
-            pc: this.pc,
-            stkp: this.stkp,
-            status: this.status,
-        }
-    }
-
     public emulate = () => {
-        let disassembly = null
+        let processorStatus = null
 
         if (this.cycle === 0) {
             this.setFlag(Flags.A, true)
@@ -71,15 +59,13 @@ class mos6502 {
             this.cycle = this.currentInstruction.cycles
             this.cycle = this.cycle + this.addressingModes[this.currentInstruction.addressing]()
             this.cycle = this.cycle + this.instructionsMap[this.currentInstruction.instruction]()
-            if (this.debug) {
-                disassembly = this.disass(pc, pc + 16)
-            }
+            processorStatus = this.getProcessorStatus(pc)
             this.setFlag(Flags.A, true)
         }
         this.cycle = this.cycle - 1
         return {
             cycle: this.cycle,
-            disassembly,
+            processorStatus,
         }
     }
 
@@ -840,77 +826,89 @@ class mos6502 {
         return 0
     }
 
-    private disass(start: number, end: number) {
-        const disassembly: Array<DebugInfo> = []
+    /**
+     * Debug functions
+     */
+
+    private getProcessorStatus(start: number) {
+        const info: Array<DebugInfo> = []
         let pc = start
 
-        while (pc <= end) {
-            const info: DebugInfo = {
-                address: pc,
-                instruction: [],
-                disassembly: { operand: 0, addressingMode: 'IMP', instruction: '???' },
-            }
-            const opcode = this.read(pc)
-            const op = decode(opcode)
-
-            info.instruction.push(opcode & 0xFF)
-            info.disassembly.instruction = op.instruction
-            info.disassembly.addressingMode = op.addressing
-            pc++
-            if (info.disassembly.addressingMode === 'IMM') {
-                info.instruction.push(this.read(pc))
-                info.disassembly.operand = info.instruction[1]
-                pc++
-            } else if (
-                info.disassembly.addressingMode === 'ABS' ||
-                info.disassembly.addressingMode === 'ABX' ||
-                info.disassembly.addressingMode === 'ABY' ||
-                info.disassembly.addressingMode === 'IND'
-            ) {
-                info.instruction.push(this.read(pc))
-                pc++
-                info.instruction.push(this.read(pc))
-                pc++
-                info.disassembly.operand = ((info.instruction[2] << 8) | info.instruction[1]) & 0xFFFF
-                // 26E6 6E 03 02  ROR $0203     |00 03 04 FF|100000|6 - ABS
-            } else if (
-                info.disassembly.addressingMode === 'INX' ||
-                info.disassembly.addressingMode === 'INY' ||
-                info.disassembly.addressingMode === 'ZPI' ||
-                info.disassembly.addressingMode === 'ZPX' ||
-                info.disassembly.addressingMode === 'ZPY' // Assuming its the same
-                // 2AE9 85 0C     STA $0C       |81 01 04 FF|111101|3 - ZPI
-                // 2BB7 95 0C     STA $0C,X     |7F 01 04 FF|100000|4 - ZPX
-            ) {
-                info.instruction.push(this.read(pc))
-                pc++
-                info.disassembly.operand = info.instruction[1]
-            } else if (info.disassembly.addressingMode === 'REL') {
-                info.instruction.push(this.read(pc))
-                pc++
-                const offset = (info.instruction[1] > 127) ? info.instruction[1] - 256 : info.instruction[1]
-                info.disassembly.operand = pc + offset
-                // 0433 D0 F4     BNE $0429     |00 05 00 FF|000100|3
-            }
-            disassembly.push(info)
-        }
-        const registers: RegistersInfo = {
-            a: this.a,
-            x: this.x,
-            y: this.y,
-            stkp: this.stkp,
-            status: {
-                n: this.getFlag(Flags.N),
-                v: this.getFlag(Flags.V),
-                d: this.getFlag(Flags.D),
-                i: this.getFlag(Flags.I),
-                z: this.getFlag(Flags.Z),
-                c: this.getFlag(Flags.C),
+        if (this.debug === false) {
+            info.push(this.disass2(start).info)
+        } else {
+            while (pc < start + 16) {
+                const data = this.disass2(pc)
+                pc = data.pc
+                info.push(data.info)
             }
         }
         return {
-            disassembly,
-            registers,
+            info,
+            registers: {
+                a: this.a,
+                x: this.x,
+                y: this.y,
+                stkp: this.stkp,
+                status: {
+                    n: this.getFlag(Flags.N),
+                    v: this.getFlag(Flags.V),
+                    d: this.getFlag(Flags.D),
+                    i: this.getFlag(Flags.I),
+                    z: this.getFlag(Flags.Z),
+                    c: this.getFlag(Flags.C),
+                }
+            }
+        }
+    }
+
+    private disass2(pc: number) {
+        const info: DebugInfo = {
+            address: pc,
+            instruction: [],
+            disassembly: { operand: 0, addressingMode: 'IMP', instruction: '???' },
+        }
+        const opcode = this.read(pc)
+        const op = decode(opcode)
+
+        info.instruction.push(opcode & 0xFF)
+        info.disassembly.instruction = op.instruction
+        info.disassembly.addressingMode = op.addressing
+        pc++
+        if (info.disassembly.addressingMode === 'IMM') {
+            info.instruction.push(this.read(pc))
+            info.disassembly.operand = info.instruction[1]
+            pc++
+        } else if (
+            info.disassembly.addressingMode === 'ABS' ||
+            info.disassembly.addressingMode === 'ABX' ||
+            info.disassembly.addressingMode === 'ABY' ||
+            info.disassembly.addressingMode === 'IND'
+        ) {
+            info.instruction.push(this.read(pc))
+            pc++
+            info.instruction.push(this.read(pc))
+            pc++
+            info.disassembly.operand = ((info.instruction[2] << 8) | info.instruction[1]) & 0xFFFF
+        } else if (
+            info.disassembly.addressingMode === 'INX' ||
+            info.disassembly.addressingMode === 'INY' ||
+            info.disassembly.addressingMode === 'ZPI' ||
+            info.disassembly.addressingMode === 'ZPX' ||
+            info.disassembly.addressingMode === 'ZPY'
+        ) {
+            info.instruction.push(this.read(pc))
+            pc++
+            info.disassembly.operand = info.instruction[1]
+        } else if (info.disassembly.addressingMode === 'REL') {
+            info.instruction.push(this.read(pc))
+            pc++
+            const offset = (info.instruction[1] > 127) ? info.instruction[1] - 256 : info.instruction[1]
+            info.disassembly.operand = pc + offset
+        }
+        return {
+            info,
+            pc,
         }
     }
 }
