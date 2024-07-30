@@ -51,7 +51,7 @@ class mos6502 {
         this.debug = debug
     }
 
-    public emulate = () => {
+    public emulate = (): { cycle: number, processorStatus: { info: Array<DebugInfo>, registers: RegistersInfo } | null} => {
         let processorStatus = null
 
         if (this.cycle === 0) {
