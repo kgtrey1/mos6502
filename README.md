@@ -2,6 +2,8 @@
 
 This emulator simulates a MOS6502 CPU. It is written in TypeScript and should work in any environment.
 
+[![Coverage Status](https://coveralls.io/repos/github/kgtrey1/kes/badge.svg?branch=master)](https://coveralls.io/github/kgtrey1/kes?branch=master)
+
 <hr>
 
 - Support decimal mode
