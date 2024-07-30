@@ -1,4 +1,4 @@
-import { readFileSync } from "fs"
+import { cp, readFileSync } from "fs"
 import path from "path"
 import mos6502 from "../src/mos6502"
 
@@ -43,5 +43,16 @@ describe('Functional tests - Klaus Dormann test suite', () => {
         }
         clearTimeout(timeout)
         expect(flag).toBeTruthy()
+    })
+
+    test('Illegal opcode', () => {
+        RAM[0xFFFC] = 0xFF;
+        RAM[0xFFFD] = 0x00;
+        RAM[0xFF00] = 0xC2;
+
+        const cpu = new mos6502(read, write)
+
+        const data = cpu.emulate()
+        expect(data.processorStatus?.info[0].disassembly.instruction).toBe('???')
     })
 })

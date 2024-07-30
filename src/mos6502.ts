@@ -882,6 +882,9 @@ class mos6502 {
         info.disassembly.instruction = op.instruction
         info.disassembly.addressingMode = op.addressing
         pc++
+        if (info.disassembly.instruction === 'BRK') {
+            info.disassembly.operand = (this.read(0xFFFF) << 8) | this.read(0xFFFE)
+        }
         if (info.disassembly.addressingMode === 'IMM') {
             info.instruction.push(this.read(pc))
             info.disassembly.operand = info.instruction[1]
