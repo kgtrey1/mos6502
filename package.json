@@ -1,7 +1,7 @@
 {
   "name": "mos6502",
   "version": "1.0.8",
-  "description": "A mos6502 emulator written in TS.",
+  "description": "A MOS6502 CPU emulator written in TypeScript.",
   "main": "dist/cjs/index.js",
   "types": "dist/typescript/index.d.ts",
   "repository": "git@github.com:kgtrey1/mos6502.git",
