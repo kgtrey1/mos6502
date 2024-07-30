@@ -1,8 +1,9 @@
-# 6502
+# mos6502
 
 This emulator simulates a MOS6502 CPU. It is written in TypeScript and should work in any environment.
 
-[![Coverage Status](https://coveralls.io/repos/github/kgtrey1/kes/badge.svg?branch=master)](https://coveralls.io/github/kgtrey1/kes?branch=master)  ![NPM Version](https://img.shields.io/npm/v/mos6502)
+[![Coverage Status](https://coveralls.io/repos/github/kgtrey1/kes/badge.svg?branch=master)](https://coveralls.io/github/kgtrey1/kes?branch=master)  ![NPM Version](https://img.shields.io/npm/v/mos6502)    ![Static Badge](https://img.shields.io/badge/license-mit-blue)
+
 <hr>
 
 - Support decimal mode
@@ -18,7 +19,7 @@ This emulator simulates a MOS6502 CPU. It is written in TypeScript and should wo
 
 ```
 
-npm i 6502 --save
+npm i mos6502 --save
 
 ```
 
@@ -28,7 +29,7 @@ npm i 6502 --save
 
 ```
 
-yarn add 6502
+yarn add mos6502
 
 ```
 
@@ -61,7 +62,7 @@ function write(address: number, value: number) {
 cpu.emulate();
 ```
 
-## Whats next
+## What is next
 
 
 The emulator fits my needs, however, I would like in the near future to:
