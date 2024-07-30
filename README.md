@@ -1,17 +1,22 @@
 # mos6502
 
-This emulator simulates a MOS6502 CPU. It is written in TypeScript and should work in any environment.
-
 [![Coverage Status](https://coveralls.io/repos/github/kgtrey1/kes/badge.svg?branch=master)](https://coveralls.io/github/kgtrey1/kes?branch=master)  ![NPM Version](https://img.shields.io/npm/v/mos6502)    ![Static Badge](https://img.shields.io/badge/license-mit-blue)
 
 <hr>
 
-- Support decimal mode
+## Description
 
-- Small debugger
 
-- Passes Klaus Dormann's test suite
+A simple emulator for the MOS6502 CPU, written entirely in TypeScript and designed for compatibility. This emulator can be used in any JavaScript environment making it perfect for retro game development, or just exploring the classic 6502 architecture.
 
+
+## Features
+
+
+- Fully written in TypeScript
+- Emulates the full range of MOS6502 instructions.
+- Implements the 6502's decimal mode.
+- Passes Klaus Dormann's functional test suite, ensuring reliability and correctness.
 
 
 ## Installation
@@ -62,17 +67,18 @@ function write(address: number, value: number) {
 cpu.emulate();
 ```
 
-## What is next
+## What's Next
 
+While the emulator currently meets my needs, I have several enhancements planned for the near future:
 
-The emulator fits my needs, however, I would like in the near future to:
-- Watch the codebase again to make sure everything is clean in terms of naming
-- Improve the debugger and the way informations are passed
-- Make a mini shell for the debugger to allow input
-- Add command such as b $1710 to 
-- Add commnad such as c to continue execution until breakpoint.
-- Add command such as s to execute the next instruction
-- Add command such as mem $1710 to analyze memory
+- **Codebase Review**: Perform a thorough review of the codebase to ensure all naming conventions are clean and consistent.
+- **Debugger Enhancements**: Improve the debugger functionality and streamline the way information is passed.
+- **Interactive Shell**: Develop a mini shell for the debugger to allow user input and commands.
+- **Breakpoint Commands**:
+  - **Set Breakpoints**: Implement commands like `b $1710` to set breakpoints at specific addresses.
+  - **Continue Execution**: Add the `c` command to continue execution until the next breakpoint.
+- **Single-Step Execution**: Introduce the `s` command to execute the next instruction step-by-step.
+- **Memory Analysis**: Add commands like `mem $1710` to inspect and analyze memory contents at specified addresses.
 
 ## CONTRIBUTING
 
