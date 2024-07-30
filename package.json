@@ -1,6 +1,6 @@
 {
   "name": "mos6502",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A MOS6502 CPU emulator written in TypeScript.",
   "main": "dist/cjs/index.js",
   "types": "dist/typescript/index.d.ts",
