@@ -62,8 +62,17 @@ function write(address: number, value: number) {
 cpu.emulate();
 ```
 
-## Methods
+## Whats next
 
+
+The emulator fits my needs, however, I would like in the near future to:
+- Watch the codebase again to make sure everything is clean in terms of naming
+- Improve the debugger and the way informations are passed
+- Make a mini shell for the debugger to allow input
+- Add command such as b $1710 to 
+- Add commnad such as c to continue execution until breakpoint.
+- Add command such as s to execute the next instruction
+- Add command such as mem $1710 to analyze memory
 
 ## CONTRIBUTING
 
@@ -75,7 +84,7 @@ If you want to contribute, feel free to open a pull request and I will review it
 ## License
 
 
-This project is licensed under the MIT License - see the [LICENSE.md]() file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/kgtrey1/kes/blob/master/LICENSE) file for details.
 
 
 ## Author
