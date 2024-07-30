@@ -1,0 +1,23 @@
+# Node modules
+node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+
+# IDE files
+.vscode/
+.idea/
+
+# Test files
+coverage
+*.spec.ts
+*.test.ts
+
+# Misc
+.github
+trace.txt

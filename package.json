@@ -1,13 +1,13 @@
 {
-  "name": "kes",
-  "version": "1.0.0",
-  "description": "A NES emulator written in TS",
-  "main": "index.js",
-  "repository": "git@github.com:kgtrey1/kes.git",
+  "name": "mos6502",
+  "version": "1.0.8",
+  "description": "A mos6502 emulator written in TS.",
+  "main": "dist/cjs/index.js",
+  "types": "dist/typescript/index.d.ts",
+  "repository": "git@github.com:kgtrey1/mos6502.git",
   "author": "Kevin Gouyet <kevin.gouyet@protonmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "node dist/src/main.js",
     "build": "tsc",
     "test": "jest"
   },
