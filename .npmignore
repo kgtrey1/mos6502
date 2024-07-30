@@ -16,6 +16,7 @@ npm-debug.log*
 # Test files
 coverage
 *.spec.ts
+tests
 
 # Misc
 .github
