@@ -90,9 +90,38 @@ class mos6502 {
         return
     }
 
-    public reset() {
-	    const lo = this.read(0xFFFC + 0)
-	    const hi = this.read(0xFFFC + 1)
+    /**
+     * Trigger a Non-Maskable Interrupt (NMI).
+     * 
+     * @method
+     * @public
+     * @returns {void}
+     */
+    public nmi(): void {
+        const lo = this.read(0xFFFA)
+	    const hi = this.read(0xFFFB)
+
+        this.setFlag(Flags.B, false)
+        this.setFlag(Flags.A, true)
+        this.setFlag(Flags.I, true)
+        this.write(0x100 + this.stkp, (this.pc >> 8) & 0x00FF)
+        this.write(0x100 + this.stkp - 1, this.pc & 0x00FF)
+        this.write(0x100 + this.stkp - 2, this.status)
+        this.stkp = (this.stkp - 3) & 0xFF
+        this.pc = ((hi << 8) | lo)
+        this.cycle = 7
+    }
+
+    /**
+     * Trigger a CPU Reset.
+     * 
+     * @method
+     * @public
+     * @returns {void}
+     */
+    public reset(): void {
+	    const lo = this.read(0xFFFC)
+	    const hi = this.read(0xFFFD)
 
 	    this.pc = (hi << 8) | lo
 	    this.a = 0
@@ -104,9 +133,55 @@ class mos6502 {
         this.setFlag(Flags.I, true)
         this.setFlag(Flags.Z, true)
         this.setFlag(Flags.A, true)
-	    this.cycle = 8
+	    this.cycle = 6
     }
 
+    /**
+     * Handles an Interrupt Request (IRQ).
+     * 
+     * @method
+     * @public
+     * @returns {void}
+     */
+    public irq(): void {
+        if (this.getFlag(Flags.I) === 1) {
+            return
+        }
+        const lo = this.read(0xFFFE)
+	    const hi = this.read(0xFFFF)
+
+        this.setFlag(Flags.B, false)
+        this.setFlag(Flags.A, true)
+        this.setFlag(Flags.I, true)
+        this.write(0x100 + this.stkp, (this.pc >> 8) & 0x00FF)
+        this.write(0x100 + this.stkp - 1, this.pc & 0x00FF)
+        this.write(0x100 + this.stkp - 2, this.status)
+        this.stkp = (this.stkp - 3) & 0xFF
+        this.pc = ((hi << 8) | lo)
+        this.cycle = 7
+    }
+
+    public getState(): { instruction: Instruction, registers: RegistersInfo, cycle: number, pc: number }  {
+        return {
+            instruction: this.currentInstruction,
+            registers: {
+                a: this.a,
+                x: this.x,
+                y: this.y,
+                stkp: this.stkp,
+                status: {
+                    n: this.getFlag(Flags.N),
+                    v: this.getFlag(Flags.V),
+                    d: this.getFlag(Flags.D),
+                    i: this.getFlag(Flags.I),
+                    z: this.getFlag(Flags.Z),
+                    c: this.getFlag(Flags.C),
+                }
+            },
+            cycle: this.cycle,
+            pc: this.pc
+        }
+    }
 
     /* Addressing modes */
 
