@@ -45,7 +45,7 @@ yarn add mos6502
 ```jsx
 import mos6502 from '6502';
 
-const cpu = new most6502();
+const cpu = new mos6502();
 const RAM = new Uint8Array(0xFFFF);
 
 /* Load your program (in this case, from a file). */
